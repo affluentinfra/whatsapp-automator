@@ -1,0 +1,782 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Creative Automation Platform (CAP) | Canva-like WhatsApp Automation</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Fabric.js via CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.1/fabric.min.js"></script>
+    <!-- Chart.js via CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Core CSS -->
+    <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body>
+
+    <!-- Notification Toast -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <!-- Login View -->
+    <div id="login-view" class="view login-view">
+        <div class="login-card">
+            <div class="login-header">
+                <div class="logo-icon"><i class="fa-solid fa-wand-magic-sparkles"></i></div>
+                <h1>Creative Automation Platform</h1>
+                <p>Personalize and share marketing creatives on WhatsApp</p>
+            </div>
+            <div class="login-tabs">
+                <button type="button" class="login-tab active" id="tab-login" onclick="toggleAuthTab('login')">Log In</button>
+                <button type="button" class="login-tab" id="tab-signup" onclick="toggleAuthTab('signup')">Sign Up</button>
+            </div>
+
+            <!-- Login Form -->
+            <form id="login-form">
+                <div class="form-group">
+                    <label for="login-email"><i class="fa-regular fa-envelope"></i> Email Address</label>
+                    <input type="email" id="login-email" required placeholder="admin@cap.com or user@cap.com">
+                </div>
+                <div class="form-group">
+                    <label for="login-password"><i class="fa-solid fa-lock"></i> Password</label>
+                    <div class="password-input-wrapper">
+                        <input type="password" id="login-password" required placeholder="admin123 or user123">
+                        <button type="button" class="btn-toggle-password" id="toggle-password-btn" onclick="togglePasswordVisibility('login-password', 'toggle-password-btn')" title="Show/Hide Password">
+                            <i class="fa-regular fa-eye"></i>
+                        </button>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary btn-block">Log In <i class="fa-solid fa-arrow-right-to-bracket"></i></button>
+            </form>
+
+            <!-- Signup Form (Hidden by default) -->
+            <form id="signup-form" class="hidden">
+                <div class="form-group">
+                    <label for="signup-name"><i class="fa-regular fa-user"></i> Full Name</label>
+                    <input type="text" id="signup-name" required placeholder="e.g., Abhishek Kumar">
+                </div>
+                <div class="form-group">
+                    <label for="signup-email"><i class="fa-regular fa-envelope"></i> Email Address</label>
+                    <input type="email" id="signup-email" required placeholder="e.g., user@cap.com">
+                </div>
+                <div class="form-group">
+                    <label for="signup-password"><i class="fa-solid fa-lock"></i> Password</label>
+                    <div class="password-input-wrapper">
+                        <input type="password" id="signup-password" required placeholder="e.g., password123">
+                        <button type="button" class="btn-toggle-password" id="toggle-password-btn-signup" onclick="togglePasswordVisibility('signup-password', 'toggle-password-btn-signup')" title="Show/Hide Password">
+                            <i class="fa-regular fa-eye"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="signup-role"><i class="fa-solid fa-user-shield"></i> Requested Role (For Testing)</label>
+                    <select id="signup-role">
+                        <option value="super_admin">Super Admin (Unlock Admin Panel)</option>
+                        <option value="admin">Admin (Create Templates)</option>
+                        <option value="user" selected>User (Personalize & Share)</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-primary btn-block">Create Account <i class="fa-solid fa-user-plus"></i></button>
+            </form>
+
+            <div class="demo-credentials" id="demo-credentials-box">
+                <p><strong>Demo Credentials:</strong></p>
+                <div class="demo-badge-row">
+                    <span class="badge badge-admin" onclick="fillDemoCreds('admin@cap.com', 'admin123')">Admin: admin@cap.com / admin123</span>
+                    <span class="badge badge-user" onclick="fillDemoCreds('user@cap.com', 'user123')">User: user@cap.com / user123</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- App View Layout -->
+    <div id="app-view" class="view app-view hidden">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="sidebar-brand">
+                <i class="fa-solid fa-wand-magic-sparkles"></i>
+                <span>CAP Studio</span>
+            </div>
+            <nav class="sidebar-nav">
+                <a href="#" class="nav-item active" data-view="dashboard">
+                    <i class="fa-solid fa-chart-line"></i> Dashboard
+                </a>
+                <a href="#" class="nav-item" data-view="templates">
+                    <i class="fa-regular fa-image"></i> Templates
+                </a>
+                <a href="#" class="nav-item" data-view="contacts">
+                    <i class="fa-solid fa-address-book"></i> Contacts
+                </a>
+                <a href="#" class="nav-item" data-view="campaigns">
+                    <i class="fa-solid fa-bullhorn"></i> Campaigns
+                </a>
+                <a href="#" class="nav-item" data-view="history">
+                    <i class="fa-solid fa-clock-rotate-left"></i> Share Logs
+                </a>
+                <a href="#" class="nav-item admin-only" data-view="settings">
+                    <i class="fa-solid fa-sliders"></i> Settings
+                </a>
+            </nav>
+            <div class="sidebar-footer">
+                <div class="user-profile">
+                    <div class="user-avatar" id="user-avatar-initials">SA</div>
+                    <div class="user-info">
+                        <div class="user-name" id="user-display-name">Super Admin</div>
+                        <div class="user-role-badge" id="user-display-role">Super Admin</div>
+                    </div>
+                </div>
+                <button id="logout-btn" class="btn-logout" title="Log Out">
+                    <i class="fa-solid fa-right-from-bracket"></i>
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <!-- Top Header -->
+            <header class="main-header">
+                <h1 id="page-title">Dashboard</h1>
+                <div class="header-actions">
+                    <button class="btn btn-secondary theme-toggle-btn" onclick="toggleTheme()" title="Toggle Dark/Light Mode">
+                        <i class="fa-solid fa-moon" id="theme-icon"></i>
+                    </button>
+                </div>
+            </header>
+
+            <!-- Inner Views Container -->
+            <div class="view-content">
+
+                <!-- 1. Dashboard Page -->
+                <section id="view-dashboard" class="sub-view">
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-icon purple"><i class="fa-solid fa-share-nodes"></i></div>
+                            <div class="stat-info">
+                                <h3>Total Shares</h3>
+                                <p id="stat-total-shares">0</p>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon cyan"><i class="fa-solid fa-users"></i></div>
+                            <div class="stat-info">
+                                <h3>Total Contacts</h3>
+                                <p id="stat-total-contacts">0</p>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon green"><i class="fa-regular fa-image"></i></div>
+                            <div class="stat-info">
+                                <h3>Active Templates</h3>
+                                <p id="stat-total-templates">0</p>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon orange"><i class="fa-solid fa-fire"></i></div>
+                            <div class="stat-info">
+                                <h3>Top Campaign</h3>
+                                <p id="stat-top-campaign">Direct Share</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="dashboard-charts-row">
+                        <div class="chart-card">
+                            <h2>Share Distribution (Weekly)</h2>
+                            <div class="chart-container">
+                                <canvas id="dailySharesChart"></canvas>
+                            </div>
+                        </div>
+                        <div class="chart-card">
+                            <h2>Shares by Campaign</h2>
+                            <div class="chart-container">
+                                <canvas id="campaignSharesChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="dashboard-lists-row">
+                        <div class="list-card">
+                            <h2>Leaderboard (Top Active Users)</h2>
+                            <ul class="leaderboard-list" id="user-leaderboard">
+                                <li class="empty-state">No sharing history found.</li>
+                            </ul>
+                        </div>
+                        <div class="list-card">
+                            <h2>Top Performing Templates</h2>
+                            <ul class="template-perf-list" id="template-leaderboard">
+                                <li class="empty-state">No sharing history found.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 2. Templates Page -->
+                <section id="view-templates" class="sub-view hidden">
+                    <div class="section-actions-row">
+                        <input type="text" id="template-search" class="search-input" placeholder="Search templates...">
+                        <button class="btn btn-primary admin-only" onclick="openCreateTemplateModal()">
+                            <i class="fa-solid fa-plus"></i> Create Template
+                        </button>
+                    </div>
+                    <div class="templates-grid" id="templates-grid-container">
+                        <!-- Templates loaded dynamically -->
+                    </div>
+                </section>
+
+                <!-- 3. Contacts Page -->
+                <section id="view-contacts" class="sub-view hidden">
+                    <div class="section-actions-row">
+                        <div class="search-wrap">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                            <input type="text" id="contact-search" class="search-input" placeholder="Search by name, company, or designation...">
+                        </div>
+                        <div class="btn-group">
+                            <button class="btn btn-secondary" onclick="openImportContactsModal()">
+                                <i class="fa-solid fa-file-import"></i> Bulk Upload (CSV/Excel)
+                            </button>
+                            <button class="btn btn-primary" onclick="openAddContactModal()">
+                                <i class="fa-solid fa-user-plus"></i> Add Contact
+                            </button>
+                        </div>
+                    </div>
+                    <div class="contacts-table-container">
+                        <table class="contacts-table">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Mobile Number</th>
+                                    <th>Company</th>
+                                    <th>Designation</th>
+                                    <th>Notes</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="contacts-table-body">
+                                <!-- Loaded dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- 4. Campaigns Page -->
+                <section id="view-campaigns" class="sub-view hidden">
+                    <div class="section-actions-row">
+                        <input type="text" id="campaign-search" class="search-input" placeholder="Search campaigns...">
+                        <button class="btn btn-primary admin-only" onclick="openCreateCampaignModal()">
+                            <i class="fa-solid fa-plus"></i> Add Campaign
+                        </button>
+                    </div>
+                    <div class="campaigns-grid" id="campaigns-grid-container">
+                        <!-- Campaigns loaded dynamically -->
+                    </div>
+                </section>
+
+                <!-- 5. History Page -->
+                <section id="view-history" class="sub-view hidden">
+                    <div class="section-actions-row">
+                        <input type="text" id="history-search" class="search-input" placeholder="Search by recipient, sender, campaign...">
+                    </div>
+                    <div class="history-table-container">
+                        <table class="history-table">
+                            <thead>
+                                <tr>
+                                    <th>Timestamp</th>
+                                    <th>Recipient</th>
+                                    <th>Sender</th>
+                                    <th>Template</th>
+                                    <th>Campaign</th>
+                                    <th>Channel</th>
+                                    <th>Status</th>
+                                    <th>Generated Creative</th>
+                                </tr>
+                            </thead>
+                            <tbody id="history-table-body">
+                                <!-- Loaded dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- 6. Settings Page -->
+                <section id="view-settings" class="sub-view hidden admin-only">
+                    <div class="settings-container">
+                        <div class="settings-card">
+                            <h2>WhatsApp Integration Mode</h2>
+                            <p class="settings-desc">Choose between generating manual click-to-chat links or sending media directly via Meta's Cloud API.</p>
+                            <div class="form-group mt-20">
+                                <label>Active Integration Channel</label>
+                                <div class="toggle-switch-container">
+                                    <label class="toggle-option">
+                                        <input type="radio" name="sharing_mode" value="manual" checked>
+                                        <div class="toggle-card">
+                                            <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                                            <span>Manual WhatsApp</span>
+                                            <small>Generates click-to-chat link</small>
+                                        </div>
+                                    </label>
+                                    <label class="toggle-option">
+                                        <input type="radio" name="sharing_mode" value="api">
+                                        <div class="toggle-card">
+                                            <i class="fa-solid fa-circle-check"></i>
+                                            <span>WhatsApp Business API</span>
+                                            <small>Dispatches directly via Meta API</small>
+                                        </div>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="api-credentials-card" class="settings-card mt-20">
+                            <h2>Meta WhatsApp Business API Settings</h2>
+                            <p class="settings-desc">Enter your Meta credentials to enable automatic sending and tracking capabilities.</p>
+                            <div class="form-group mt-20">
+                                <label for="settings-phone-id">WhatsApp Phone Number ID</label>
+                                <input type="text" id="settings-phone-id" placeholder="e.g., 102938475610293">
+                            </div>
+                            <div class="form-group">
+                                <label for="settings-access-token">Permanent System User Access Token</label>
+                                <input type="password" id="settings-access-token" placeholder="EAAGx...">
+                            </div>
+                        </div>
+
+                        <div class="settings-card mt-20">
+                            <h2>Database Connection Overview</h2>
+                            <div class="db-status-row">
+                                <span class="db-indicator active" id="db-connection-indicator"></span>
+                                <div>
+                                    <h4 id="db-connection-title">Local DB (SQLite) Active</h4>
+                                    <p id="db-connection-desc">Running in default zero-config sqlite state. Provide Supabase environment variables to sync.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mt-20">
+                            <button class="btn btn-primary" onclick="saveSettingsConfig()">Save Configuration</button>
+                        </div>
+                    </div>
+                </section>
+
+            </div>
+        </main>
+    </div>
+
+    <!-- CANVAS LAYOUT BUILDER VIEW (ADMINS - Full page override) -->
+    <div id="editor-layout-view" class="editor-layout-view hidden">
+        <header class="editor-header">
+            <div class="editor-brand">
+                <button class="btn-icon-back" onclick="exitEditor()"><i class="fa-solid fa-arrow-left"></i></button>
+                <div class="editor-title-wrap">
+                    <h2 id="editor-template-name">Template Design Studio</h2>
+                    <span id="editor-template-category" class="badge">Flyer</span>
+                </div>
+            </div>
+            <div class="editor-top-actions">
+                <button class="btn btn-secondary" onclick="addTextPlaceholder()"><i class="fa-solid fa-font"></i> Add Text Field</button>
+                <button class="btn btn-secondary" onclick="addImagePlaceholder()"><i class="fa-solid fa-image"></i> Add Image Box</button>
+                <button class="btn btn-primary" onclick="saveEditorLayout()"><i class="fa-solid fa-floppy-disk"></i> Save Template</button>
+            </div>
+        </header>
+
+        <div class="editor-workspace">
+            <!-- Sidebar: Placeholder Tree / Layers -->
+            <aside class="editor-sidebar-left">
+                <h3>Template Fields</h3>
+                <p class="editor-info-text">Configure variables mapped to contact fields. Every template automatically contains Name & Mobile.</p>
+                <div id="editor-fields-list" class="editor-fields-list">
+                    <!-- Loaded dynamically -->
+                </div>
+            </aside>
+
+            <!-- Main Canvas Stage -->
+            <div class="canvas-stage">
+                <div class="canvas-container-outer">
+                    <canvas id="canvas-designer"></canvas>
+                </div>
+            </div>
+
+            <!-- Sidebar: Field Property Inspector -->
+            <aside class="editor-sidebar-right" id="inspector-panel">
+                <h3>Element Inspector</h3>
+                <div class="inspector-empty-state" id="inspector-empty">
+                    <i class="fa-solid fa-sliders"></i>
+                    <p>Select a dynamic field on the canvas to configure properties.</p>
+                </div>
+                <div class="inspector-controls hidden" id="inspector-controls-box">
+                    <div class="property-group">
+                        <label>Mapping Field ID</label>
+                        <select id="prop-mapping-field" onchange="updateSelectedProp('name', this.value)">
+                            <option value="Name">Name (Default)</option>
+                            <option value="Mobile">Mobile (Default)</option>
+                            <option value="Company">Company</option>
+                            <option value="Designation">Designation</option>
+                            <option value="Logo">Logo (Image)</option>
+                            <option value="QR Code">QR Code (Image)</option>
+                            <option value="Profile Image">Profile Image (Image)</option>
+                            <option value="Website">Website</option>
+                            <option value="Email">Email</option>
+                            <option value="Custom Text">Custom Text</option>
+                        </select>
+                    </div>
+                    
+                    <!-- Text Formatting Section -->
+                    <div id="inspector-text-section">
+                        <hr class="inspector-divider">
+                        <div class="property-group">
+                            <label>Font Styling</label>
+                            <div class="format-buttons-row">
+                                <button class="btn-format" id="btn-bold" onclick="toggleTextFormat('bold')" title="Bold"><i class="fa-solid fa-bold"></i></button>
+                                <button class="btn-format" id="btn-italic" onclick="toggleTextFormat('italic')" title="Italic"><i class="fa-solid fa-italic"></i></button>
+                                <button class="btn-format" id="btn-underline" onclick="toggleTextFormat('underline')" title="Underline"><i class="fa-solid fa-underline"></i></button>
+                            </div>
+                        </div>
+
+                        <div class="property-grid">
+                            <div class="property-group">
+                                <label>Font Family</label>
+                                <select id="prop-font-family" onchange="updateSelectedProp('fontFamily', this.value)">
+                                    <option value="Inter">Inter</option>
+                                    <option value="Outfit">Outfit</option>
+                                    <option value="Arial">Arial</option>
+                                    <option value="Georgia">Georgia</option>
+                                    <option value="Courier New">Courier</option>
+                                </select>
+                            </div>
+                            <div class="property-group">
+                                <label>Font Size</label>
+                                <input type="number" id="prop-font-size" min="8" max="150" oninput="updateSelectedProp('fontSize', parseInt(this.value))">
+                            </div>
+                        </div>
+
+                        <div class="property-grid">
+                            <div class="property-group">
+                                <label>Align</label>
+                                <select id="prop-align" onchange="updateSelectedProp('textAlign', this.value)">
+                                    <option value="left">Left</option>
+                                    <option value="center">Center</option>
+                                    <option value="right">Right</option>
+                                </select>
+                            </div>
+                            <div class="property-group">
+                                <label>Text Color</label>
+                                <input type="color" id="prop-text-color" oninput="updateSelectedProp('fill', this.value)">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Image Formatting Section -->
+                    <div id="inspector-image-section" class="hidden">
+                        <hr class="inspector-divider">
+                        <div class="property-group">
+                            <label>Image Type</label>
+                            <span class="badge" id="prop-img-badge">Dynamic Logo</span>
+                        </div>
+                        <div class="property-group">
+                            <label>Default Placeholder</label>
+                            <div class="placeholder-preview" id="inspector-image-preview">
+                                <i class="fa-solid fa-image"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <hr class="inspector-divider">
+                    <div class="property-grid">
+                        <div class="property-group">
+                            <label>Width (px)</label>
+                            <input type="number" id="prop-width" oninput="updateSelectedSize('width', parseFloat(this.value))">
+                        </div>
+                        <div class="property-group">
+                            <label>Height (px)</label>
+                            <input type="number" id="prop-height" oninput="updateSelectedSize('height', parseFloat(this.value))">
+                        </div>
+                    </div>
+
+                    <div class="property-grid">
+                        <div class="property-group">
+                            <label>Rotation (°)</label>
+                            <input type="number" id="prop-rotation" oninput="updateSelectedProp('angle', parseFloat(this.value))">
+                        </div>
+                        <div class="property-group">
+                            <label>Opacity</label>
+                            <input type="range" id="prop-opacity" min="0.1" max="1.0" step="0.1" oninput="updateSelectedProp('opacity', parseFloat(this.value))">
+                        </div>
+                    </div>
+
+                    <div class="property-group mt-20">
+                        <button class="btn btn-danger btn-block" onclick="deleteSelectedField()"><i class="fa-regular fa-trash-can"></i> Delete Field</button>
+                    </div>
+                </div>
+            </aside>
+        </div>
+    </div>
+
+    <!-- CANVAS PERSONALIZER & WHATSAPP SHARING VIEW (USERS/ADMINS - Full page override) -->
+    <div id="personalize-layout-view" class="editor-layout-view hidden">
+        <header class="editor-header">
+            <div class="editor-brand">
+                <button class="btn-icon-back" onclick="exitPersonalizer()"><i class="fa-solid fa-arrow-left"></i></button>
+                <div class="editor-title-wrap">
+                    <h2 id="personalize-template-name">Personalize Design</h2>
+                    <span id="personalize-campaign-badge" class="badge">Campaign: General</span>
+                </div>
+            </div>
+            <div class="editor-top-actions">
+                <button class="btn btn-secondary" onclick="generateAndDownloadImage()"><i class="fa-solid fa-download"></i> Download Image</button>
+                <button class="btn btn-primary" onclick="initiateBulkWhatsAppSend()"><i class="fa-brands fa-whatsapp"></i> Share on WhatsApp</button>
+            </div>
+        </header>
+
+        <div class="editor-workspace">
+            <!-- Sidebar: Contact Selector (WhatsApp-like structure) -->
+            <aside class="personalize-sidebar-left">
+                <div class="sidebar-search-wrap">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                    <input type="text" id="share-contact-search" placeholder="Search contacts..." oninput="filterShareContacts(this.value)">
+                </div>
+                <div class="contacts-select-header">
+                    <label class="checkbox-container">
+                        <input type="checkbox" id="select-all-contacts-cb" onchange="toggleSelectAllContacts(this.checked)">
+                        <span class="checkmark"></span>
+                        Select All Contacts
+                    </label>
+                    <span class="selection-count" id="selected-contacts-count">0 selected</span>
+                </div>
+                <div id="share-contacts-list" class="share-contacts-list">
+                    <!-- WhatsApp-like contact items populated dynamically -->
+                </div>
+            </aside>
+
+            <!-- Main Preview Stage -->
+            <div class="canvas-stage">
+                <div class="canvas-container-outer">
+                    <canvas id="canvas-preview"></canvas>
+                </div>
+            </div>
+
+            <!-- Sidebar: Customize Fields Overrides -->
+            <aside class="personalize-sidebar-right">
+                <h3>Personalization Values</h3>
+                <p class="editor-info-text">Modify details to customize the layout. Changes apply only to the generated image.</p>
+                
+                <div class="override-fields-container" id="override-fields-box">
+                    <!-- Populated dynamically based on selected contact & fields -->
+                </div>
+
+                <div class="selected-contact-preview-card mt-20" id="selected-contact-card">
+                    <h4>Recipient Profile</h4>
+                    <div class="profile-details-row">
+                        <div class="profile-details-info">
+                            <strong id="preview-contact-name">Select a contact</strong>
+                            <span id="preview-contact-mobile">-</span>
+                            <span id="preview-contact-company" class="mt-5">-</span>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+        </div>
+    </div>
+
+    <!-- MODAL WINDOWS -->
+
+    <!-- Create Template Modal -->
+    <div id="modal-create-template" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Create Template</h2>
+                <button class="modal-close" onclick="closeModal('modal-create-template')">&times;</button>
+            </div>
+            <form id="create-template-form" onsubmit="handleCreateTemplate(event)">
+                <div class="form-group">
+                    <label for="tpl-name">Template Name</label>
+                    <input type="text" id="tpl-name" required placeholder="e.g., Festival Greetings 2026">
+                </div>
+                <div class="form-group">
+                    <label for="tpl-category">Category</label>
+                    <input type="text" id="tpl-category" required placeholder="e.g., Festival, Project Launch, Offer">
+                </div>
+                <div class="form-group">
+                    <label for="tpl-bg">Background Creative (PNG/JPG)</label>
+                    <input type="file" id="tpl-bg" accept="image/png, image/jpeg" required>
+                </div>
+                <div class="modal-footer mt-20">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('modal-create-template')">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Create & Design <i class="fa-solid fa-pen-nib"></i></button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Add Contact Modal -->
+    <div id="modal-add-contact" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="contact-modal-title">Add Contact</h2>
+                <button class="modal-close" onclick="closeModal('modal-add-contact')">&times;</button>
+            </div>
+            <form id="add-contact-form" onsubmit="handleSaveContact(event)">
+                <input type="hidden" id="contact-id-field">
+                <div class="form-group">
+                    <label for="c-name">Full Name</label>
+                    <input type="text" id="c-name" required placeholder="e.g., John Doe">
+                </div>
+                <div class="form-group">
+                    <label for="c-mobile">Mobile Number (Format: 10 digits or normalized)</label>
+                    <input type="text" id="c-mobile" required placeholder="e.g., 9876543210">
+                </div>
+                <div class="form-group">
+                    <label for="c-company">Company</label>
+                    <input type="text" id="c-company" placeholder="e.g., Acme Corp">
+                </div>
+                <div class="form-group">
+                    <label for="c-designation">Designation</label>
+                    <input type="text" id="c-designation" placeholder="e.g., Marketing Manager">
+                </div>
+                <div class="form-group">
+                    <label for="c-notes">Notes</label>
+                    <textarea id="c-notes" rows="3" placeholder="e.g., Interested in Project Launch"></textarea>
+                </div>
+                <div class="modal-footer mt-20">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('modal-add-contact')">Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="contact-submit-btn">Save Contact</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Import Contacts Modal -->
+    <div id="modal-import-contacts" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Bulk Import Contacts</h2>
+                <button class="modal-close" onclick="closeModal('modal-import-contacts')">&times;</button>
+            </div>
+            <form id="import-contacts-form" onsubmit="handleImportContacts(event)">
+                <p class="modal-desc">Upload a CSV or Excel (.xlsx) file. Columns detected: <code>name</code>, <code>mobile</code>, <code>company</code>, <code>designation</code>, <code>notes</code>.</p>
+                <div class="form-group mt-20">
+                    <label for="import-file">Select File</label>
+                    <input type="file" id="import-file" accept=".csv, .xlsx" required>
+                </div>
+                <div class="form-group">
+                    <label for="import-duplicate-rule">Duplicate Numbers Resolution Rule</label>
+                    <select id="import-duplicate-rule">
+                        <option value="ask">Prompt & Decide (Ask me for each duplicate)</option>
+                        <option value="update">Update existing records with new data</option>
+                        <option value="skip">Skip importing duplicates</option>
+                        <option value="overwrite">Overwrite / Create new</option>
+                    </select>
+                </div>
+                <div class="modal-footer mt-20">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('modal-import-contacts')">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Start Import <i class="fa-solid fa-file-arrow-up"></i></button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Import Resolution Warning Modal -->
+    <div id="modal-import-resolution" class="modal hidden">
+        <div class="modal-content import-resolution-modal">
+            <div class="modal-header bg-warning">
+                <h2><i class="fa-solid fa-triangle-exclamation"></i> Duplicate Contact Detected</h2>
+            </div>
+            <div class="modal-body mt-20">
+                <p>A contact with the mobile number <strong id="res-mobile-display">919876543210</strong> already exists.</p>
+                <div class="resolution-comparison">
+                    <div class="res-card">
+                        <h4>Existing Record</h4>
+                        <p><strong>Name:</strong> <span id="res-existing-name">-</span></p>
+                        <p><strong>Company:</strong> <span id="res-existing-company">-</span></p>
+                        <p><strong>Designation:</strong> <span id="res-existing-designation">-</span></p>
+                    </div>
+                    <div class="res-card val-imported">
+                        <h4>Imported Record</h4>
+                        <p><strong>Name:</strong> <span id="res-imported-name">-</span></p>
+                        <p><strong>Company:</strong> <span id="res-imported-company">-</span></p>
+                        <p><strong>Designation:</strong> <span id="res-imported-designation">-</span></p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer mt-20">
+                <button type="button" class="btn btn-secondary" onclick="resolveImportDuplicate('skip')">Skip Record</button>
+                <button type="button" class="btn btn-warning" onclick="resolveImportDuplicate('update')">Update Existing</button>
+                <button type="button" class="btn btn-primary" onclick="resolveImportDuplicate('overwrite')">Overwrite New</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create Campaign Modal -->
+    <div id="modal-create-campaign" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="campaign-modal-title">Create Campaign</h2>
+                <button class="modal-close" onclick="closeModal('modal-create-campaign')">&times;</button>
+            </div>
+            <form id="create-campaign-form" onsubmit="handleSaveCampaign(event)">
+                <input type="hidden" id="campaign-id-field">
+                <div class="form-group">
+                    <label for="camp-name">Campaign Name</label>
+                    <input type="text" id="camp-name" required placeholder="e.g., Independence Day Sale 2026">
+                </div>
+                <div class="property-grid">
+                    <div class="form-group">
+                        <label for="camp-start">Start Date</label>
+                        <input type="date" id="camp-start" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="camp-end">End Date</label>
+                        <input type="date" id="camp-end" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="camp-status">Status</label>
+                    <select id="camp-status">
+                        <option value="active">Active</option>
+                        <option value="inactive">Inactive</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Select Associated Templates</label>
+                    <div class="campaign-templates-selection" id="campaign-templates-list-cb">
+                        <!-- Populated dynamically -->
+                    </div>
+                </div>
+                <div class="modal-footer mt-20">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('modal-create-campaign')">Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="campaign-submit-btn">Save Campaign</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Bulk Sharing Progress Modal -->
+    <div id="modal-sharing-progress" class="modal hidden" data-backdrop="static">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Sharing Progress</h2>
+            </div>
+            <div class="modal-body mt-20 text-center">
+                <div class="progress-spinner"><i class="fa-solid fa-spinner fa-spin"></i></div>
+                <h3 class="mt-20" id="sharing-progress-title">Generating images...</h3>
+                <p id="sharing-progress-subtitle">Preparing 0 / 0 creatives</p>
+                <div class="progress-bar-container mt-15">
+                    <div class="progress-bar-fill" id="sharing-progress-bar" style="width: 0%"></div>
+                </div>
+                <div class="sharing-log-terminal mt-20" id="sharing-progress-log">
+                    <!-- Log lines -->
+                </div>
+            </div>
+            <div class="modal-footer mt-20 text-center" id="sharing-progress-footer" style="display: none">
+                <button type="button" class="btn btn-primary" onclick="closeModal('modal-sharing-progress')">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- App Scripts -->
+    <script src="/static/js/api.js"></script>
+    <script src="/static/js/canvas-editor.js"></script>
+    <script src="/static/js/app.js"></script>
+</body>
+</html>
