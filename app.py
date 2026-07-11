@@ -170,9 +170,14 @@ def create_template():
     filename = f"bg_{uuid.uuid4().hex}_{bg_file.filename}"
     file_bytes = bg_file.read()
     try:
-        bg_url = storage.save_file(file_bytes, filename, folder="templates", force_supabase=True)
+        bg_url = storage.save_file(file_bytes, filename, folder="templates", force_supabase=False)
     except Exception as e:
-        return jsonify({"error": str(e)}), 400
+        print(f"Graceful template background fallback: {e}")
+        # Force local saving
+        dest_path = os.path.join(storage.UPLOAD_FOLDER, "templates", filename)
+        with open(dest_path, "wb") as f:
+            f.write(file_bytes)
+        bg_url = f"/static/uploads/templates/{filename}"
     
     template = database.create_template(name, category, bg_url)
     

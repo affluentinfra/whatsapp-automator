@@ -465,6 +465,46 @@
                                 <input type="color" id="prop-text-color" oninput="updateSelectedProp('fill', this.value)">
                             </div>
                         </div>
+
+                        <!-- Gradient, Outline, Highlight, and Shadows -->
+                        <div class="property-grid">
+                            <div class="property-group">
+                                <label>Text Highlight</label>
+                                <input type="color" id="prop-text-bg-color" value="#ffffff" oninput="updateSelectedProp('textBackgroundColor', this.value)">
+                            </div>
+                            <div class="property-group">
+                                <label>Gradient Fills</label>
+                                <select id="prop-text-gradient" onchange="applyTextGradientFromUI(this.value)">
+                                    <option value="">Solid Color</option>
+                                    <option value="purple_pink">Purple Pink</option>
+                                    <option value="sunset">Sunset Orange</option>
+                                    <option value="ocean">Ocean Blue</option>
+                                    <option value="neon">Neon Lime</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="property-grid">
+                            <div class="property-group">
+                                <label>Outline Color</label>
+                                <input type="color" id="prop-stroke-color" value="#000000" oninput="updateSelectedProp('stroke', this.value)">
+                            </div>
+                            <div class="property-group">
+                                <label>Outline Size</label>
+                                <input type="number" id="prop-stroke-width" min="0" max="10" value="0" oninput="updateSelectedProp('strokeWidth', parseInt(this.value))">
+                            </div>
+                        </div>
+
+                        <div class="property-grid">
+                            <div class="property-group">
+                                <label>Shadow Blur</label>
+                                <input type="number" id="prop-shadow-blur" min="0" max="30" value="0" oninput="updateTextShadowFromUI()">
+                            </div>
+                            <div class="property-group">
+                                <label>Shadow Color</label>
+                                <input type="color" id="prop-shadow-color" value="#000000" oninput="updateTextShadowFromUI()">
+                            </div>
+                        </div>
                     </div>
 
                     <!-- Image Formatting Section -->

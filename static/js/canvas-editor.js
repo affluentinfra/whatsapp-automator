@@ -76,6 +76,10 @@ function getPercentCoords(obj) {
     const w = obj.width * scaleX;
     const h = obj.height * scaleY;
 
+    // Retrieve active gradient choice from UI input if selected
+    const gradSelect = document.getElementById("prop-text-gradient");
+    const activeGrad = (gradSelect && selectedFabricObject === obj) ? gradSelect.value : (obj.gradientFillName || "");
+
     return {
         name: obj.mappingName || "Custom Text",
         type: obj.fieldType || "text",
@@ -87,13 +91,21 @@ function getPercentCoords(obj) {
         font_family: obj.fontFamily || "Inter",
         font_size: Math.round(obj.fontSize || 24),
         font_weight: obj.fontWeight || "normal",
-        text_color: obj.fill || "#000000",
+        text_color: (typeof obj.fill === "string") ? obj.fill : "#ffffff",
         extra_styles: {
             fontStyle: obj.fontStyle || "normal",
             underline: obj.underline || false,
             textAlign: obj.textAlign || "left",
             opacity: obj.opacity || 1.0,
-            angle: obj.angle || 0
+            angle: obj.angle || 0,
+            
+            // Custom Styling variables saved in extra_styles JSON block
+            textBackgroundColor: obj.textBackgroundColor || "",
+            stroke: obj.stroke || "",
+            strokeWidth: obj.strokeWidth || 0,
+            shadowBlur: obj.shadow ? obj.shadow.blur : 0,
+            shadowColor: obj.shadow ? obj.shadow.color : "",
+            gradientFillName: activeGrad
         }
     };
 }
@@ -129,11 +141,33 @@ function loadTemplateFieldsToDesigner(fields) {
                 textAlign: extra.textAlign || "left",
                 opacity: extra.opacity || 1.0,
                 angle: extra.angle || 0,
+                
+                // Set outline and background colors
+                textBackgroundColor: extra.textBackgroundColor || "",
+                stroke: extra.stroke || null,
+                strokeWidth: extra.strokeWidth || 0,
                 cornerColor: "#6366f1",
                 cornerSize: 8,
                 transparentCorners: false,
                 hasRotatingPoint: true
             });
+
+            // Set drop shadow details
+            if (extra.shadowBlur > 0) {
+                textObj.set("shadow", new fabric.Shadow({
+                    color: extra.shadowColor || "#000000",
+                    blur: extra.shadowBlur,
+                    offsetX: 2,
+                    offsetY: 2
+                }));
+            }
+
+            // Set gradient colors
+            if (extra.gradientFillName) {
+                textObj.gradientFillName = extra.gradientFillName;
+                applyGradientToObjectDirectly(textObj, extra.gradientFillName, false);
+            }
+
             textObj.fieldType = "text";
             textObj.mappingName = f.name;
             textObj.isDefault = f.is_default;
@@ -169,14 +203,45 @@ function setupDesignerEvents() {
     designerCanvas.on("selection:created", (e) => handleObjectSelection(e.selected[0]));
     designerCanvas.on("selection:updated", (e) => handleObjectSelection(e.selected[0]));
     designerCanvas.on("selection:cleared", () => clearInspector());
-    designerCanvas.on("object:moving", () => syncInspectorCoords());
-    designerCanvas.on("object:scaling", () => syncInspectorCoords());
+    
+    designerCanvas.on("object:moving", (e) => {
+        const obj = e.target;
+        const scaleX = obj.scaleX || 1;
+        const scaleY = obj.scaleY || 1;
+        const w = obj.width * scaleX;
+        const h = obj.height * scaleY;
+        
+        // Boundaries clamping: Prevent elements from dragging outside canvas background image
+        if (obj.left < 0) obj.left = 0;
+        if (obj.top < 0) obj.top = 0;
+        if (obj.left + w > designerCanvas.width) obj.left = designerCanvas.width - w;
+        if (obj.top + h > designerCanvas.height) obj.top = designerCanvas.height - h;
+        
+        syncInspectorCoords();
+    });
+
+    designerCanvas.on("object:scaling", (e) => {
+        const obj = e.target;
+        const scaleX = obj.scaleX || 1;
+        const scaleY = obj.scaleY || 1;
+        const w = obj.width * scaleX;
+        const h = obj.height * scaleY;
+
+        // Boundaries clamping: Prevent scaling beyond template boundaries
+        if (obj.left + w > designerCanvas.width) {
+            obj.scaleX = (designerCanvas.width - obj.left) / obj.width;
+        }
+        if (obj.top + h > designerCanvas.height) {
+            obj.scaleY = (designerCanvas.height - obj.top) / obj.height;
+        }
+        syncInspectorCoords();
+    });
+    
     designerCanvas.on("object:rotating", () => syncInspectorCoords());
 }
 
 function handleObjectSelection(obj) {
     selectedFabricObject = obj;
-    
     document.getElementById("inspector-empty").classList.add("hidden");
     const controls = document.getElementById("inspector-controls-box");
     controls.classList.remove("hidden");
@@ -195,7 +260,15 @@ function handleObjectSelection(obj) {
         document.getElementById("prop-font-family").value = obj.fontFamily || "Inter";
         document.getElementById("prop-font-size").value = obj.fontSize || 24;
         document.getElementById("prop-align").value = obj.textAlign || "left";
-        document.getElementById("prop-text-color").value = obj.fill || "#000000";
+        document.getElementById("prop-text-color").value = (typeof obj.fill === "string") ? obj.fill : "#ffffff";
+        
+        // Populating advanced styling elements
+        document.getElementById("prop-text-bg-color").value = obj.textBackgroundColor || "#ffffff";
+        document.getElementById("prop-stroke-color").value = obj.stroke || "#000000";
+        document.getElementById("prop-stroke-width").value = obj.strokeWidth || 0;
+        document.getElementById("prop-shadow-blur").value = obj.shadow ? obj.shadow.blur : 0;
+        document.getElementById("prop-shadow-color").value = obj.shadow ? obj.shadow.color : "#000000";
+        document.getElementById("prop-text-gradient").value = (obj.fill && obj.fill.colorStops) ? "" : ""; // Default to solid option unless set
 
         // Set style buttons active states
         document.getElementById("btn-bold").classList.toggle("active", obj.fontWeight === "bold");
@@ -547,8 +620,29 @@ function renderHighResBase64(template, contactData, overrideVals = {}) {
                         underline: extra.underline || false,
                         textAlign: extra.textAlign || "left",
                         opacity: extra.opacity || 1.0,
-                        angle: extra.angle || 0
+                        angle: extra.angle || 0,
+                        
+                        // Apply custom outline and highlights
+                        textBackgroundColor: extra.textBackgroundColor || "",
+                        stroke: extra.stroke || null,
+                        strokeWidth: extra.strokeWidth || 0
                     });
+
+                    // Set drop shadow details
+                    if (extra.shadowBlur > 0) {
+                        textObj.set("shadow", new fabric.Shadow({
+                            color: extra.shadowColor || "#000000",
+                            blur: extra.shadowBlur,
+                            offsetX: 2,
+                            offsetY: 2
+                        }));
+                    }
+
+                    // Set gradient colors
+                    if (extra.gradientFillName) {
+                        applyGradientToObjectDirectly(textObj, extra.gradientFillName, true);
+                    }
+
                     offscreenCanvas.add(textObj);
                 } else {
                     // Image Box overlay mock
@@ -590,4 +684,77 @@ function renderHighResBase64(template, contactData, overrideVals = {}) {
             resolve(base64Data);
         }, { crossOrigin: 'anonymous' });
     });
+}
+
+// Advanced Styling Helpers
+function applyTextGradientFromUI(gradientName) {
+    if (!selectedFabricObject) return;
+    if (!gradientName) {
+        const solidColor = document.getElementById("prop-text-color").value || "#ffffff";
+        selectedFabricObject.set("fill", solidColor);
+        selectedFabricObject.gradientFillName = "";
+        designerCanvas.renderAll();
+        return;
+    }
+    selectedFabricObject.gradientFillName = gradientName;
+    applyGradientToObjectDirectly(selectedFabricObject, gradientName, false);
+    designerCanvas.renderAll();
+}
+
+function updateTextShadowFromUI() {
+    if (!selectedFabricObject) return;
+    const blur = parseInt(document.getElementById("prop-shadow-blur").value) || 0;
+    const color = document.getElementById("prop-shadow-color").value || "#000000";
+    
+    if (blur === 0) {
+        selectedFabricObject.set("shadow", null);
+    } else {
+        selectedFabricObject.set("shadow", new fabric.Shadow({
+            color: color,
+            blur: blur,
+            offsetX: 2,
+            offsetY: 2
+        }));
+    }
+    designerCanvas.renderAll();
+}
+
+function applyGradientToObjectDirectly(obj, gradientName, useNativeWidth = false) {
+    const gradColors = {
+        purple_pink: [
+            { offset: 0, color: '#8A2387' },
+            { offset: 0.5, color: '#E94057' },
+            { offset: 1, color: '#F27121' }
+        ],
+        sunset: [
+            { offset: 0, color: '#f12711' },
+            { offset: 1, color: '#f5af19' }
+        ],
+        ocean: [
+            { offset: 0, color: '#00c6ff' },
+            { offset: 1, color: '#0072ff' }
+        ],
+        neon: [
+            { offset: 0, color: '#00F260' },
+            { offset: 1, color: '#0575E6' }
+        ]
+    }[gradientName];
+
+    if (!gradColors) return;
+
+    // Calculate bounding width
+    const w = useNativeWidth ? obj.width : obj.width * (obj.scaleX || 1);
+
+    const grad = new fabric.Gradient({
+        type: 'linear',
+        coords: {
+            x1: 0,
+            y1: 0,
+            x2: w,
+            y2: 0
+        },
+        colorStops: gradColors
+    });
+
+    obj.set("fill", grad);
 }
