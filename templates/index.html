@@ -7,7 +7,7 @@
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&family=Poppins:wght@400;500;600;700&family=Montserrat:wght@400;700&family=Roboto:wght@400;700&family=Playfair+Display:wght@700&family=Pacifico&family=Lobster&display=swap" rel="stylesheet">
     <!-- FontAwesome for Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Fabric.js via CDN -->
@@ -439,7 +439,13 @@
                                 <label>Font Family</label>
                                 <select id="prop-font-family" onchange="updateSelectedProp('fontFamily', this.value)">
                                     <option value="Inter">Inter</option>
+                                    <option value="Poppins">Poppins</option>
+                                    <option value="Montserrat">Montserrat</option>
                                     <option value="Outfit">Outfit</option>
+                                    <option value="Roboto">Roboto</option>
+                                    <option value="Playfair Display">Playfair Display</option>
+                                    <option value="Pacifico">Pacifico (Cursive)</option>
+                                    <option value="Lobster">Lobster (Display)</option>
                                     <option value="Arial">Arial</option>
                                     <option value="Georgia">Georgia</option>
                                     <option value="Courier New">Courier</option>
@@ -542,6 +548,17 @@
                         <div class="property-group">
                             <label>Opacity</label>
                             <input type="range" id="prop-opacity" min="0.1" max="1.0" step="0.1" oninput="updateSelectedProp('opacity', parseFloat(this.value))">
+                        </div>
+                    </div>
+
+                    <hr class="inspector-divider">
+                    <div class="property-group">
+                        <label><i class="fa-solid fa-layer-group"></i> Layer Order</label>
+                        <div class="format-buttons-row">
+                            <button type="button" class="btn btn-secondary btn-sm" style="flex: 1; padding: 6px;" onclick="arrangeLayer('front')" title="Bring to Front"><i class="fa-solid fa-angles-up"></i> Front</button>
+                            <button type="button" class="btn btn-secondary btn-sm" style="flex: 1; padding: 6px;" onclick="arrangeLayer('forward')" title="Bring Forward"><i class="fa-solid fa-angle-up"></i> Up</button>
+                            <button type="button" class="btn btn-secondary btn-sm" style="flex: 1; padding: 6px;" onclick="arrangeLayer('backward')" title="Send Backward"><i class="fa-solid fa-angle-down"></i> Down</button>
+                            <button type="button" class="btn btn-secondary btn-sm" style="flex: 1; padding: 6px;" onclick="arrangeLayer('back')" title="Send to Back"><i class="fa-solid fa-angles-down"></i> Back</button>
                         </div>
                     </div>
 

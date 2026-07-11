@@ -168,6 +168,11 @@ function loadTemplateFieldsToDesigner(fields) {
                 applyGradientToObjectDirectly(textObj, extra.gradientFillName, false);
             }
 
+            // Preload Google Font
+            if (f.font_family) {
+                loadFontAndRender(f.font_family);
+            }
+
             textObj.fieldType = "text";
             textObj.mappingName = f.name;
             textObj.isDefault = f.is_default;
@@ -307,6 +312,9 @@ function updateSelectedProp(property, value) {
         renderDesignerFieldsSidebar();
     } else {
         selectedFabricObject.set(property, value);
+        if (property === "fontFamily") {
+            loadFontAndRender(value);
+        }
     }
     
     designerCanvas.renderAll();
@@ -643,6 +651,11 @@ function renderHighResBase64(template, contactData, overrideVals = {}) {
                         applyGradientToObjectDirectly(textObj, extra.gradientFillName, true);
                     }
 
+                    // Preload Google Font
+                    if (f.font_family) {
+                        loadFontAndRender(f.font_family);
+                    }
+
                     offscreenCanvas.add(textObj);
                 } else {
                     // Image Box overlay mock
@@ -757,4 +770,44 @@ function applyGradientToObjectDirectly(obj, gradientName, useNativeWidth = false
     });
 
     obj.set("fill", grad);
+}
+
+function arrangeLayer(action) {
+    if (!selectedFabricObject) return;
+    
+    if (action === "front") {
+        selectedFabricObject.bringToFront();
+    } else if (action === "back") {
+        selectedFabricObject.sendToBack();
+        // Keep the background image at the absolute bottom
+        const bg = designerCanvas.backgroundImage;
+        if (bg) {
+            bg.sendToBack();
+        }
+    } else if (action === "forward") {
+        selectedFabricObject.bringForward();
+    } else if (action === "backward") {
+        selectedFabricObject.sendBackwards();
+        // Make sure we don't go behind background image
+        const bg = designerCanvas.backgroundImage;
+        if (bg && designerCanvas.getObjects().indexOf(selectedFabricObject) === 0) {
+            selectedFabricObject.bringForward();
+        }
+    }
+    
+    designerCanvas.renderAll();
+    renderDesignerFieldsSidebar();
+}
+
+function loadFontAndRender(fontName) {
+    if (!fontName) return;
+    
+    document.fonts.load(`1em "${fontName}"`).then(() => {
+        if (designerCanvas) {
+            designerCanvas.requestRenderAll();
+        }
+        if (previewCanvas) {
+            previewCanvas.requestRenderAll();
+        }
+    });
 }
