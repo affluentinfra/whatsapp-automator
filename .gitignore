@@ -1,0 +1,32 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+ENV/
+.venv/
+
+# Secret & Configurations
+.env
+.env.local
+.env.production
+.env.development
+
+# Databases & local logs
+*.db
+*.log
+cap_local.db
+
+# User Uploaded Static Media (Prevent bloating git repo)
+static/uploads/creatives/*
+static/uploads/templates/*
+static/uploads/assets/*
+
+# Editor / OS settings
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
