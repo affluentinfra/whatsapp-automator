@@ -45,26 +45,23 @@ class TestCAPStudio(unittest.TestCase):
                 self.assertEqual(normalize_phone(raw), expected)
 
     def test_login_api(self):
-        """Assert auth login endpoint functions and issues token."""
+        """Assert auth login endpoint functions and sets session."""
         response = self.client.post("/api/auth/login", json={
             "email": self.test_email,
             "password": self.test_password
         })
         self.assertEqual(response.status_code, 200)
         data = json.loads(response.data)
-        self.assertIn("token", data)
         self.assertEqual(data["user"]["email"], self.test_email)
         self.assertEqual(data["user"]["role"], self.test_role)
 
     def test_contacts_api_duplicate_detection(self):
         """Assert API blocks duplicates with a 409 status code."""
-        # 1. Login to get token
-        login_res = self.client.post("/api/auth/login", json={
+        # 1. Login to establish session cookie
+        self.client.post("/api/auth/login", json={
             "email": self.test_email,
             "password": self.test_password
         })
-        token = json.loads(login_res.data)["token"]
-        headers = {"Authorization": f"Bearer {token}"}
         
         # 2. Add first contact (make sure it's unique by generating a phone number)
         unique_phone = "917777777777"
@@ -77,7 +74,7 @@ class TestCAPStudio(unittest.TestCase):
             "name": "Jane Tester",
             "mobile": unique_phone,
             "company": "Test LLC"
-        }, headers=headers)
+        })
         self.assertEqual(res1.status_code, 201)
         
         # 3. Add duplicate phone contact and expect 409 conflict
@@ -85,7 +82,7 @@ class TestCAPStudio(unittest.TestCase):
             "name": "Duplicate Jane",
             "mobile": unique_phone,
             "company": "Other Corp"
-        }, headers=headers)
+        })
         self.assertEqual(res2.status_code, 409)
         data = json.loads(res2.data)
         self.assertEqual(data["error"], "Duplicate contact")
@@ -96,14 +93,13 @@ class TestCAPStudio(unittest.TestCase):
 
     def test_analytics_api_format(self):
         """Assert analytics API provides expected key layout."""
-        login_res = self.client.post("/api/auth/login", json={
+        # Login to establish session cookie
+        self.client.post("/api/auth/login", json={
             "email": self.test_email,
             "password": self.test_password
         })
-        token = json.loads(login_res.data)["token"]
-        headers = {"Authorization": f"Bearer {token}"}
 
-        response = self.client.get("/api/analytics", headers=headers)
+        response = self.client.get("/api/analytics")
         self.assertEqual(response.status_code, 200)
         data = json.loads(response.data)
         

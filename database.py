@@ -136,12 +136,20 @@ def init_db():
         share_timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         delivery_status TEXT NOT NULL DEFAULT 'sent', -- 'sent', 'delivered', 'read', 'failed'
         channel TEXT NOT NULL, -- 'manual', 'api'
+        message_id TEXT,
         FOREIGN KEY (contact_id) REFERENCES contacts(id),
         FOREIGN KEY (user_id) REFERENCES users(id),
         FOREIGN KEY (template_id) REFERENCES templates(id) ON DELETE SET NULL,
         FOREIGN KEY (campaign_id) REFERENCES campaigns(id) ON DELETE SET NULL
     )
     ''')
+
+    # Migration: Add message_id column to existing sqlite share_history table if needed
+    try:
+        cursor.execute("ALTER TABLE share_history ADD COLUMN message_id TEXT")
+    except sqlite3.OperationalError:
+        # Column already exists
+        pass
 
     # Settings
     cursor.execute('''
@@ -464,7 +472,7 @@ def update_campaign(campaign_id, name, start_date, end_date, status, template_id
     return True
 
 # --- SHARE HISTORY & LOGGING ---
-def log_share(contact_id, user_id, template_id, campaign_id, generated_image_url, channel, status="sent"):
+def log_share(contact_id, user_id, template_id, campaign_id, generated_image_url, channel, status="sent", message_id=None):
     if IS_SUPABASE:
         data = {
             "contact_id": contact_id,
@@ -474,6 +482,7 @@ def log_share(contact_id, user_id, template_id, campaign_id, generated_image_url
             "generated_image_url": generated_image_url,
             "channel": channel,
             "delivery_status": status,
+            "message_id": message_id,
             "share_timestamp": datetime.now().isoformat()
         }
         res = supabase_client.table("share_history").insert(data).execute()
@@ -482,14 +491,25 @@ def log_share(contact_id, user_id, template_id, campaign_id, generated_image_url
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute(
-        """INSERT INTO share_history (contact_id, user_id, template_id, campaign_id, generated_image_url, channel, delivery_status)
-           VALUES (?, ?, ?, ?, ?, ?, ?)""",
-        (contact_id, user_id, template_id, campaign_id, generated_image_url, channel, status)
+        """INSERT INTO share_history (contact_id, user_id, template_id, campaign_id, generated_image_url, channel, delivery_status, message_id)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+        (contact_id, user_id, template_id, campaign_id, generated_image_url, channel, status, message_id)
     )
     new_id = cursor.lastrowid
     conn.commit()
     conn.close()
     return {"id": new_id, "contact_id": contact_id, "user_id": user_id, "generated_image_url": generated_image_url}
+
+def update_share_status_by_message_id(message_id, status):
+    if IS_SUPABASE:
+        res = supabase_client.table("share_history").update({"delivery_status": status}).eq("message_id", message_id).execute()
+        return True
+
+    conn = get_db_connection()
+    conn.execute("UPDATE share_history SET delivery_status = ? WHERE message_id = ?", (status, message_id))
+    conn.commit()
+    conn.close()
+    return True
 
 def get_share_history():
     if IS_SUPABASE:

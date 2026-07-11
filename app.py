@@ -497,6 +497,7 @@ def share_creative():
     
     delivery_status = "sent"
     whatsapp_url = ""
+    message_id = None
     
     # Mode 1: Manual Sharing URL
     if sharing_mode == "manual":
@@ -537,7 +538,10 @@ def share_creative():
             try:
                 response = requests.post(url, json=payload, headers=headers, timeout=10)
                 if response.status_code in [200, 201]:
-                    delivery_status = "delivered"
+                    delivery_status = "sent"
+                    res_data = response.json()
+                    if "messages" in res_data and len(res_data["messages"]) > 0:
+                        message_id = res_data["messages"][0].get("id")
                 else:
                     delivery_status = "failed"
                     print(f"Meta API error response: {response.text}")
@@ -553,7 +557,8 @@ def share_creative():
         campaign_id=campaign_id,
         generated_image_url=image_url,
         channel=sharing_mode,
-        status=delivery_status
+        status=delivery_status,
+        message_id=message_id
     )
     
     return jsonify({
@@ -597,6 +602,42 @@ def save_settings():
         database.update_setting("meta_access_token", data["meta_access_token"])
         
     return jsonify({"success": True})
+
+# --- WHATSAPP BUSINESS API WEBHOOKS ---
+@app.route("/api/webhook", methods=["GET"])
+def verify_webhook():
+    """Handles verification challenge from Meta Console."""
+    mode = request.args.get("hub.mode")
+    token = request.args.get("hub.verify_token")
+    challenge = request.args.get("hub.challenge")
+    
+    settings = database.get_settings()
+    verify_token = settings.get("meta_verify_token") or os.getenv("META_VERIFY_TOKEN", "cap_webhook_verify_token")
+    
+    if mode == "subscribe" and token == verify_token:
+        print("Webhook verified successfully!")
+        return challenge, 200
+    return "Forbidden", 403
+
+@app.route("/api/webhook", methods=["POST"])
+def receive_webhook():
+    """Receives event callbacks from Meta and updates share history delivery status."""
+    data = request.get_json() or {}
+    
+    if "entry" in data:
+        for entry in data["entry"]:
+            for change in entry.get("changes", []):
+                val = change.get("value", {})
+                statuses = val.get("statuses", [])
+                for status_item in statuses:
+                    wamid = status_item.get("id")
+                    status_val = status_item.get("status") # e.g. "sent", "delivered", "read", "failed"
+                    
+                    if wamid and status_val:
+                        print(f"Webhook Update: Message {wamid} changed status to {status_val}")
+                        database.update_share_status_by_message_id(wamid, status_val)
+                        
+    return jsonify({"status": "ok"}), 200
 
 if __name__ == "__main__":
     port = int(os.getenv("PORT", 5000))

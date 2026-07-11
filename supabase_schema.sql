@@ -77,7 +77,8 @@ CREATE TABLE IF NOT EXISTS share_history (
     generated_image_url TEXT NOT NULL,
     share_timestamp TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     delivery_status TEXT NOT NULL DEFAULT 'sent', -- 'sent', 'delivered', 'read', 'failed'
-    channel TEXT NOT NULL -- 'manual', 'api'
+    channel TEXT NOT NULL, -- 'manual', 'api'
+    message_id TEXT
 );
 
 -- 8. Create Settings Table
