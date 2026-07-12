@@ -229,6 +229,16 @@ def save_template_fields(template_id):
     database.save_template_fields(template_id, fields)
     return jsonify({"success": True})
 
+# --- TEMPLATE DELETE (Permanent) ---
+@app.route("/api/templates/<int:template_id>", methods=["DELETE"])
+@token_required
+def delete_template(template_id):
+    if request.user["role"] not in ["super_admin", "admin"]:
+        return jsonify({"error": "Unauthorized"}), 403
+    # Delete template and its fields permanently
+    database.delete_template(template_id)
+    return jsonify({"success": True})
+
 @app.route("/api/templates/<int:template_id>/status", methods=["PUT"])
 @token_required
 def update_template_status(template_id):
