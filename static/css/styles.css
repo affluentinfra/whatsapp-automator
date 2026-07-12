@@ -719,23 +719,27 @@ input:focus, select:focus, textarea:focus {
 
 /* --- SETTINGS SUB-VIEW --- */
 .settings-container {
-    max-width: 650px;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
 }
+
 .settings-card {
-    background: var(--bg-surface);
-    border: 1px solid var(--border-color);
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
     border-radius: 12px;
     padding: 24px;
-}
-.settings-card h2 {
-    font-size: 1.2rem;
-    margin-bottom: 6px;
-}
-.settings-desc {
-    font-size: 0.85rem;
-    color: var(--text-secondary);
+    box-shadow: var(--shadow-main);
     margin-bottom: 20px;
 }
+
+.settings-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 12px;
+}
+
 .toggle-switch-container {
     display: flex;
     gap: 15px;
