@@ -463,6 +463,26 @@ def update_campaign(campaign_id):
     database.update_campaign(campaign_id, name, start_date, end_date, status, template_ids)
     return jsonify({"success": True})
 
+@app.route("/api/campaigns/<int:campaign_id>", methods=["DELETE"])
+@token_required
+def delete_campaign(campaign_id):
+    if request.user["role"] not in ["super_admin", "admin"]:
+        return jsonify({"error": "Unauthorized"}), 403
+    # Soft delete the campaign using database helper
+    from database import soft_delete_campaign
+    soft_delete_campaign(campaign_id)
+    return jsonify({"success": True})
+
+@app.route("/templates/<int:template_id>/editor", methods=["GET"])
+@token_required
+def edit_template(template_id):
+    template = database.get_template_by_id(template_id)
+    if not template:
+        return jsonify({"error": "Template not found"}), 404
+    # Render the template editor HTML, passing template data
+    return render_template("template_editor.html", template_id=template_id, background_url=template["background_url"])
+
+
 # --- SHARING API ---
 @app.route("/api/share", methods=["POST"])
 @token_required

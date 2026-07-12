@@ -109,6 +109,7 @@ def init_db():
         start_date TEXT NOT NULL,
         end_date TEXT NOT NULL,
         status TEXT NOT NULL DEFAULT 'active', -- 'active', 'inactive'
+        is_deleted INTEGER NOT NULL DEFAULT 0, -- 0 = active, 1 = soft-deleted
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
     ''')
@@ -411,7 +412,8 @@ def get_campaigns():
         return campaigns
 
     conn = get_db_connection()
-    campaigns = conn.execute("SELECT * FROM campaigns ORDER BY created_at DESC").fetchall()
+    # Exclude soft-deleted campaigns
+    campaigns = conn.execute("SELECT * FROM campaigns WHERE is_deleted = 0 ORDER BY created_at DESC").fetchall()
     result = []
     for c in campaigns:
         cdict = dict(c)
@@ -437,7 +439,7 @@ def create_campaign(name, start_date, end_date, status, template_ids):
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute(
-        "INSERT INTO campaigns (name, start_date, end_date, status) VALUES (?, ?, ?, ?)",
+        "INSERT INTO campaigns (name, start_date, end_date, status, is_deleted) VALUES (?, ?, ?, ?, 0)",
         (name, start_date, end_date, status)
     )
     c_id = cursor.lastrowid
@@ -461,12 +463,22 @@ def update_campaign(campaign_id, name, start_date, end_date, status, template_id
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute(
-        "UPDATE campaigns SET name = ?, start_date = ?, end_date = ?, status = ? WHERE id = ?",
+        "UPDATE campaigns SET name = ?, start_date = ?, end_date = ?, status = ?, is_deleted = 0 WHERE id = ?",
         (name, start_date, end_date, status, campaign_id)
     )
     cursor.execute("DELETE FROM campaign_templates WHERE campaign_id = ?", (campaign_id,))
     for t_id in template_ids:
         cursor.execute("INSERT INTO campaign_templates (campaign_id, template_id) VALUES (?, ?)", (campaign_id, t_id))
+    conn.commit()
+    conn.close()
+    return True
+
+def soft_delete_campaign(campaign_id):
+    if IS_SUPABASE:
+        supabase_client.table("campaigns").update({"is_deleted": True}).eq("id", campaign_id).execute()
+        return True
+    conn = get_db_connection()
+    conn.execute("UPDATE campaigns SET is_deleted = 1 WHERE id = ?", (campaign_id,))
     conn.commit()
     conn.close()
     return True
