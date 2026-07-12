@@ -585,7 +585,7 @@ def share_creative():
                 print(f"Meta API call failed: {e}")
                 
     # Log the share
-    database.log_share(
+    share_entry = database.log_share(
         contact_id=contact_id,
         user_id=request.user["id"],
         template_id=template_id,
@@ -596,6 +596,13 @@ def share_creative():
         message_id=message_id
     )
     
+    # Automatically log a 'sent' event
+    if share_entry and share_entry.get("id"):
+        database.log_share_event(share_entry["id"], "sent", {
+            "channel": sharing_mode,
+            "status": delivery_status
+        })
+    
     return jsonify({
         "success": True,
         "channel": sharing_mode,
@@ -603,6 +610,78 @@ def share_creative():
         "whatsapp_url": whatsapp_url,
         "image_url": image_url
     })
+
+
+# --- SHARE HISTORY API ---
+@app.route("/api/share/history", methods=["GET"])
+@token_required
+def get_share_history():
+    """Returns all share history logs with JOIN data and event counts."""
+    try:
+        history = database.get_share_history()
+        return jsonify(history)
+    except Exception as e:
+        print(f"Error fetching share history: {e}")
+        return jsonify([])
+
+
+@app.route("/api/share/track", methods=["POST"])
+def track_share_event():
+    """Public endpoint to log a link-open or click event when a recipient opens a shared creative."""
+    data = request.get_json() or {}
+    share_id = data.get("share_id")
+    event_type = data.get("event_type", "opened")  # 'opened', 'clicked'
+    
+    if not share_id:
+        return jsonify({"error": "share_id is required"}), 400
+    
+    allowed_events = ["opened", "clicked", "viewed"]
+    if event_type not in allowed_events:
+        return jsonify({"error": f"event_type must be one of: {allowed_events}"}), 400
+    
+    # Capture request metadata
+    metadata = {
+        "ip": request.remote_addr,
+        "user_agent": request.headers.get("User-Agent", ""),
+        "referrer": request.headers.get("Referer", "")
+    }
+    
+    try:
+        database.log_share_event(int(share_id), event_type, metadata)
+        return jsonify({"success": True})
+    except Exception as e:
+        print(f"Track event error: {e}")
+        return jsonify({"error": "Failed to log event"}), 500
+
+
+@app.route("/api/share/<int:share_id>/events", methods=["GET"])
+@token_required
+def get_share_events(share_id):
+    """Returns the full event timeline for a specific share entry."""
+    try:
+        events = database.get_share_events(share_id)
+        return jsonify(events)
+    except Exception as e:
+        print(f"Error fetching share events: {e}")
+        return jsonify([])
+
+
+@app.route("/api/share/<int:share_id>", methods=["DELETE"])
+@token_required
+def delete_share_entry(share_id):
+    """Permanently delete a share history entry and log a 'deleted' event first."""
+    if request.user["role"] not in ["super_admin", "admin"]:
+        return jsonify({"error": "Unauthorized"}), 403
+    try:
+        # Log deletion event before removing
+        database.log_share_event(share_id, "deleted", {"deleted_by": request.user["email"]})
+        database.delete_share_history_entry(share_id)
+        return jsonify({"success": True})
+    except Exception as e:
+        print(f"Delete share error: {e}")
+        return jsonify({"error": "Failed to delete share entry"}), 500
+
+
 
 # --- ANALYTICS API ---
 @app.route("/api/analytics", methods=["GET"])
@@ -671,8 +750,21 @@ def receive_webhook():
                     if wamid and status_val:
                         print(f"Webhook Update: Message {wamid} changed status to {status_val}")
                         database.update_share_status_by_message_id(wamid, status_val)
+                        # Also log this as a tracking event
+                        try:
+                            import sqlite3 as _sl
+                            conn = database.get_db_connection()
+                            row = conn.execute(
+                                "SELECT id FROM share_history WHERE message_id = ?", (wamid,)
+                            ).fetchone()
+                            conn.close()
+                            if row:
+                                database.log_share_event(row["id"], status_val, {"source": "meta_webhook"})
+                        except Exception as _e:
+                            print(f"Could not log webhook event: {_e}")
                         
     return jsonify({"status": "ok"}), 200
+
 
 if __name__ == "__main__":
     port = int(os.getenv("PORT", 5000))

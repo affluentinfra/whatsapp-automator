@@ -859,23 +859,14 @@ async function handleSaveCampaign(event) {
 // --- 5. HISTORY (SHARE LOGS) VIEW CONTROLLER ---
 async function loadHistoryData() {
     try {
-        const logs = await API.request("/api/share", { method: "GET" }).catch(() => []); // Fallback endpoint or share history
-        // Fetch share logs from database
-        const list = await API.getShare_History || await API.request("/api/share/history", { method: "GET" }).catch(() => []);
-        
-        // Since we unified backend endpoints let's execute get_share_history
-        const unifiedHistory = await API.request("/api/share", { method: "GET" }).catch(async () => {
-            // Or fetch from customized endpoint
-            const res = await fetch("/api/share", {
-                headers: { "Authorization": `Bearer ${API.getToken()}` }
-            });
-            return await res.json();
-        });
-        
-        shareHistoryList = unifiedHistory;
+        const history = await API.request("/api/share/history", { method: "GET" });
+        shareHistoryList = Array.isArray(history) ? history : [];
         renderHistoryTable(shareHistoryList);
     } catch (err) {
+        console.error("Share history error:", err);
         showToast("Failed to fetch share logs.", "error");
+        shareHistoryList = [];
+        renderHistoryTable([]);
     }
 }
 
@@ -883,54 +874,164 @@ function renderHistoryTable(logs) {
     const tbody = document.getElementById("history-table-body");
     tbody.innerHTML = "";
 
-    if (logs.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="8" class="text-center">No sharing history logs recorded.</td></tr>`;
+    if (!logs || logs.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="9" class="text-center" style="padding:2rem;opacity:0.6;">
+            <i class="fa-solid fa-clock-rotate-left" style="font-size:2rem;display:block;margin-bottom:0.5rem;"></i>
+            No sharing history logs recorded yet.
+        </td></tr>`;
         return;
     }
 
     logs.forEach(l => {
         const tr = document.createElement("tr");
         
-        // Formatting Timestamp
         const dateStr = new Date(l.share_timestamp).toLocaleString();
+        const lastEvent = l.last_event ? new Date(l.last_event).toLocaleDateString() : "—";
+        const eventCount = l.event_count || 0;
 
         const channelBadge = l.channel === "api" ? 
             `<span class="badge badge-admin"><i class="fa-solid fa-code"></i> API</span>` : 
             `<span class="badge badge-secondary"><i class="fa-solid fa-arrow-up-right-from-square"></i> Manual</span>`;
 
-        const statusBadge = `<span class="badge badge-status-${l.delivery_status}">${l.delivery_status}</span>`;
+        const statusColors = {
+            sent: "#3b82f6",
+            delivered: "#22c55e",
+            read: "#a855f7",
+            failed: "#ef4444",
+            opened: "#f59e0b",
+            clicked: "#06b6d4"
+        };
+        const statusColor = statusColors[l.delivery_status] || "#6b7280";
+        const statusBadge = `<span class="badge" style="background:${statusColor}20;color:${statusColor};border:1px solid ${statusColor}40;">
+            ${l.delivery_status || "sent"}
+        </span>`;
+
+        const eventBadge = eventCount > 0 
+            ? `<span class="badge" style="background:#f59e0b20;color:#f59e0b;border:1px solid #f59e0b40;cursor:pointer;" onclick="viewShareEvents(${l.id})">
+                <i class="fa-solid fa-chart-line"></i> ${eventCount} event${eventCount > 1 ? 's' : ''}
+               </span>`
+            : `<span style="opacity:0.4;font-size:0.75rem;">No events</span>`;
 
         tr.innerHTML = `
             <td><small>${dateStr}</small></td>
             <td>
-                <strong>${l.contact_name}</strong><br>
-                <code style="font-size: 0.75rem;">+${l.contact_mobile}</code>
+                <strong>${l.contact_name || "Unknown"}</strong><br>
+                <code style="font-size: 0.75rem;">+${l.contact_mobile || ""}</code>
             </td>
-            <td>${l.user_name}</td>
-            <td>${l.template_name}</td>
-            <td>${l.campaign_name || "Direct Share"}</td>
+            <td>${l.user_name || "System"}</td>
+            <td>${l.template_name || "N/A"}</td>
+            <td>${l.campaign_name || "<span style='opacity:0.5'>Direct Share</span>"}</td>
             <td>${channelBadge}</td>
             <td>${statusBadge}</td>
+            <td>${eventBadge}<br><small style="opacity:0.5;">Last: ${lastEvent}</small></td>
             <td>
-                <a href="${l.generated_image_url}" target="_blank" class="btn btn-secondary" style="padding: 5px 10px; font-size: 0.75rem;">
-                    <i class="fa-regular fa-eye"></i> View Image
-                </a>
+                <div style="display:flex;gap:4px;align-items:center;">
+                    <a href="${l.generated_image_url}" target="_blank" class="btn btn-secondary" style="padding:4px 8px;font-size:0.7rem;" title="View Image">
+                        <i class="fa-regular fa-eye"></i>
+                    </a>
+                    <button class="btn btn-secondary" style="padding:4px 8px;font-size:0.7rem;color:#f59e0b;" onclick="viewShareEvents(${l.id})" title="View Event Timeline">
+                        <i class="fa-solid fa-timeline"></i>
+                    </button>
+                    <button class="btn btn-danger" style="padding:4px 8px;font-size:0.7rem;" onclick="deleteShareEntry(${l.id})" title="Delete Log">
+                        <i class="fa-solid fa-trash"></i>
+                    </button>
+                </div>
             </td>
         `;
         tbody.appendChild(tr);
     });
 }
 
+async function viewShareEvents(shareId) {
+    try {
+        const events = await API.request(`/api/share/${shareId}/events`, { method: "GET" });
+        const share = shareHistoryList.find(s => s.id === shareId);
+        
+        const eventIcons = {
+            sent: { icon: "fa-paper-plane", color: "#3b82f6" },
+            delivered: { icon: "fa-circle-check", color: "#22c55e" },
+            read: { icon: "fa-eye", color: "#a855f7" },
+            failed: { icon: "fa-circle-xmark", color: "#ef4444" },
+            opened: { icon: "fa-envelope-open", color: "#f59e0b" },
+            clicked: { icon: "fa-hand-pointer", color: "#06b6d4" },
+            viewed: { icon: "fa-magnifying-glass", color: "#8b5cf6" },
+            deleted: { icon: "fa-trash", color: "#6b7280" }
+        };
+
+        let timelineHtml = `<div style="margin-bottom:1rem;opacity:0.7;">
+            Share to <strong>${share ? share.contact_name : "Contact #" + shareId}</strong>
+        </div>`;
+
+        if (!events || events.length === 0) {
+            timelineHtml += `<p style="opacity:0.5;text-align:center;">No tracking events recorded yet.</p>`;
+        } else {
+            timelineHtml += `<div style="position:relative;padding-left:1.5rem;">
+                <div style="position:absolute;left:0.6rem;top:0;bottom:0;width:2px;background:rgba(255,255,255,0.1);"></div>`;
+            events.forEach(e => {
+                const cfg = eventIcons[e.event_type] || { icon: "fa-circle", color: "#6b7280" };
+                const ts = new Date(e.event_timestamp).toLocaleString();
+                const meta = e.metadata && typeof e.metadata === "object" 
+                    ? Object.entries(e.metadata).filter(([k,v]) => v && k !== "user_agent")
+                        .map(([k,v]) => `<span style="opacity:0.6;font-size:0.72rem;">${k}: ${v}</span>`).join(" · ")
+                    : "";
+                timelineHtml += `
+                <div style="position:relative;margin-bottom:1rem;padding:0.75rem;background:rgba(255,255,255,0.04);border-radius:8px;border-left:3px solid ${cfg.color}40;">
+                    <div style="position:absolute;left:-1.8rem;top:50%;transform:translateY(-50%);width:1.2rem;height:1.2rem;background:${cfg.color};border-radius:50%;display:flex;align-items:center;justify-content:center;">
+                        <i class="fa-solid ${cfg.icon}" style="font-size:0.55rem;color:white;"></i>
+                    </div>
+                    <div style="display:flex;justify-content:space-between;align-items:center;">
+                        <strong style="color:${cfg.color};text-transform:capitalize;">${e.event_type}</strong>
+                        <small style="opacity:0.5;">${ts}</small>
+                    </div>
+                    ${meta ? `<div style="margin-top:0.25rem;">${meta}</div>` : ""}
+                </div>`;
+            });
+            timelineHtml += `</div>`;
+        }
+
+        // Show in a simple alert-style modal
+        const overlay = document.createElement("div");
+        overlay.style.cssText = `position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);`;
+        overlay.innerHTML = `
+            <div style="background:#1a1a2e;border:1px solid rgba(255,255,255,0.12);border-radius:16px;padding:1.5rem;width:90%;max-width:500px;max-height:80vh;overflow-y:auto;">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+                    <h3 style="margin:0;"><i class="fa-solid fa-timeline" style="color:#f59e0b;margin-right:0.5rem;"></i>Event Timeline</h3>
+                    <button onclick="this.closest('.overlay-modal').remove()" style="background:none;border:none;color:white;font-size:1.2rem;cursor:pointer;opacity:0.7;">✕</button>
+                </div>
+                ${timelineHtml}
+            </div>`;
+        overlay.classList.add("overlay-modal");
+        overlay.addEventListener("click", e => { if (e.target === overlay) overlay.remove(); });
+        document.body.appendChild(overlay);
+
+    } catch (err) {
+        showToast("Failed to load event timeline.", "error");
+    }
+}
+
+async function deleteShareEntry(shareId) {
+    if (!confirm("Permanently delete this share log entry and all its tracking events?")) return;
+    try {
+        await API.request(`/api/share/${shareId}`, { method: "DELETE" });
+        showToast("Share log deleted successfully.", "success");
+        loadHistoryData();
+    } catch (err) {
+        showToast("Failed to delete share log.", "error");
+    }
+}
+
 function filterHistory(query) {
     const q = query.toLowerCase();
     const filtered = shareHistoryList.filter(l => 
-        l.contact_name.toLowerCase().includes(q) || 
-        l.user_name.toLowerCase().includes(q) || 
+        (l.contact_name && l.contact_name.toLowerCase().includes(q)) || 
+        (l.user_name && l.user_name.toLowerCase().includes(q)) || 
         (l.template_name && l.template_name.toLowerCase().includes(q)) || 
         (l.campaign_name && l.campaign_name.toLowerCase().includes(q))
     );
     renderHistoryTable(filtered);
 }
+
+
 
 // --- 6. SETTINGS VIEW CONTROLLER ---
 async function loadSettingsData() {

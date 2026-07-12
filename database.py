@@ -160,6 +160,24 @@ def init_db():
     )
     ''')
 
+    # Share Link Events - track what happens to every shared link
+    cursor.execute('''
+    CREATE TABLE IF NOT EXISTS share_link_events (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        share_id INTEGER NOT NULL,
+        event_type TEXT NOT NULL, -- 'opened', 'clicked', 'deleted', 'expired', 'resent', 'failed', 'delivered', 'read'
+        event_timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        metadata TEXT, -- JSON string for extra info (IP, user agent, etc.)
+        FOREIGN KEY (share_id) REFERENCES share_history(id) ON DELETE CASCADE
+    )
+    ''')
+
+    # Migration: ensure share_link_events exists in older DBs
+    try:
+        cursor.execute("SELECT 1 FROM share_link_events LIMIT 1")
+    except Exception:
+        pass
+
     # Insert default admin user if none exists
     cursor.execute("SELECT COUNT(*) FROM users")
     if cursor.fetchone()[0] == 0:
@@ -551,27 +569,90 @@ def get_share_history():
             item["user_name"] = row["users"]["name"] if row.get("users") else "System"
             item["template_name"] = row["templates"]["name"] if row.get("templates") else "N/A"
             item["campaign_name"] = row["campaigns"]["name"] if row.get("campaigns") else "Direct Share"
+            item["event_count"] = 0
+            item["last_event"] = None
             flattened.append(item)
         return flattened
 
     conn = get_db_connection()
-    # Query with JOINs
+    # Query with JOINs + event counts
     sql = """
-        SELECT s.*, 
+        SELECT s.*,
                c.name AS contact_name, c.mobile AS contact_mobile,
                u.name AS user_name,
                t.name AS template_name,
-               cp.name AS campaign_name
+               cp.name AS campaign_name,
+               COUNT(sle.id) AS event_count,
+               MAX(sle.event_timestamp) AS last_event
         FROM share_history s
-        JOIN contacts c ON s.contact_id = c.id
-        JOIN users u ON s.user_id = u.id
+        LEFT JOIN contacts c ON s.contact_id = c.id
+        LEFT JOIN users u ON s.user_id = u.id
         LEFT JOIN templates t ON s.template_id = t.id
         LEFT JOIN campaigns cp ON s.campaign_id = cp.id
+        LEFT JOIN share_link_events sle ON sle.share_id = s.id
+        GROUP BY s.id
         ORDER BY s.share_timestamp DESC
     """
     history = conn.execute(sql).fetchall()
     conn.close()
     return [dict(h) for h in history]
+
+
+def log_share_event(share_id, event_type, metadata=None):
+    """Log a tracking event for a share (opened, clicked, deleted, etc.)"""
+    import json
+    meta_str = json.dumps(metadata) if metadata else None
+    if IS_SUPABASE:
+        supabase_client.table("share_link_events").insert({
+            "share_id": share_id,
+            "event_type": event_type,
+            "metadata": meta_str
+        }).execute()
+        return
+    conn = get_db_connection()
+    conn.execute(
+        "INSERT INTO share_link_events (share_id, event_type, metadata) VALUES (?, ?, ?)",
+        (share_id, event_type, meta_str)
+    )
+    conn.commit()
+    conn.close()
+
+
+def get_share_events(share_id):
+    """Get all tracking events for a specific share."""
+    import json
+    if IS_SUPABASE:
+        res = supabase_client.table("share_link_events").select("*") \
+            .eq("share_id", share_id).order("event_timestamp", desc=True).execute()
+        return res.data
+    conn = get_db_connection()
+    rows = conn.execute(
+        "SELECT * FROM share_link_events WHERE share_id = ? ORDER BY event_timestamp DESC",
+        (share_id,)
+    ).fetchall()
+    conn.close()
+    events = []
+    for r in [dict(row) for row in rows]:
+        if r.get("metadata"):
+            try:
+                r["metadata"] = json.loads(r["metadata"])
+            except Exception:
+                pass
+        events.append(r)
+    return events
+
+
+def delete_share_history_entry(share_id):
+    """Permanently delete a share history entry and its events."""
+    if IS_SUPABASE:
+        supabase_client.table("share_link_events").delete().eq("share_id", share_id).execute()
+        supabase_client.table("share_history").delete().eq("id", share_id).execute()
+        return
+    conn = get_db_connection()
+    conn.execute("DELETE FROM share_link_events WHERE share_id = ?", (share_id,))
+    conn.execute("DELETE FROM share_history WHERE id = ?", (share_id,))
+    conn.commit()
+    conn.close()
 
 # --- ANALYTICS ---
 def get_analytics_summary():
