@@ -1061,19 +1061,14 @@ async function loadSettingsData() {
         const title = document.getElementById("db-connection-title");
         const desc = document.getElementById("db-connection-desc");
         
-        // Hit check connection or inspect metadata
-        // If supabase keys are entered in .env, indicate Supabase active.
-        const isSupabaseConfigured = Boolean(settings.meta_access_token); // Or check fallback flag if needed
-        // For local indicators, hit settings metadata
-        const response = await fetch("/api/settings", {
-            headers: { "Authorization": `Bearer ${API.getToken()}` }
-        });
-        const currentData = await response.json();
-        
         // SQLite vs Supabase detection
-        if (API.getToken()) {
-            title.innerText = "Integrated System Connected";
-            desc.innerText = "System database layer active. Local SQLite database file and file storage fallback active. Connect environment parameters to activate Supabase.";
+        if (settings.is_supabase) {
+            title.innerText = "Cloud DB (Supabase) Active";
+            desc.innerText = "Connected to Supabase PostgreSQL cloud instance and Supabase Blob Storage.";
+            indicator.className = "db-indicator active";
+        } else {
+            title.innerText = "Local DB (SQLite) Active";
+            desc.innerText = "Running in default zero-config SQLite state. Provide Supabase environment variables in .env to sync with cloud.";
             indicator.className = "db-indicator active";
         }
 

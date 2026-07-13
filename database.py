@@ -152,6 +152,13 @@ def init_db():
         # Column already exists
         pass
 
+    # Migration: Add is_deleted column to existing sqlite campaigns table if needed
+    try:
+        cursor.execute("ALTER TABLE campaigns ADD COLUMN is_deleted INTEGER NOT NULL DEFAULT 0")
+    except sqlite3.OperationalError:
+        # Column already exists
+        pass
+
     # Settings
     cursor.execute('''
     CREATE TABLE IF NOT EXISTS settings (

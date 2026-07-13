@@ -698,7 +698,11 @@ def get_settings():
     # Mask access token for security
     if settings.get("meta_access_token"):
         settings["meta_access_token"] = "************" + settings["meta_access_token"][-4:]
-    return jsonify(settings)
+    
+    # Add database type metadata
+    response_data = dict(settings)
+    response_data["is_supabase"] = database.IS_SUPABASE
+    return jsonify(response_data)
 
 @app.route("/api/settings", methods=["POST"])
 @token_required
