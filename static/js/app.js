@@ -173,6 +173,21 @@ function showAppView() {
     switchView("dashboard");
 }
 
+// Mobile Sidebar Toggle
+function toggleSidebarMenu(show) {
+    const sidebar = document.getElementById("app-sidebar");
+    const overlay = document.getElementById("sidebar-overlay");
+    if (!sidebar || !overlay) return;
+    
+    if (show) {
+        sidebar.classList.add("active");
+        overlay.classList.add("active");
+    } else {
+        sidebar.classList.remove("active");
+        overlay.classList.remove("active");
+    }
+}
+
 // Global Nav Bar
 function setupNavigation() {
     const navItems = document.querySelectorAll(".nav-item");
@@ -181,6 +196,8 @@ function setupNavigation() {
             e.preventDefault();
             const viewName = item.getAttribute("data-view");
             switchView(viewName);
+            // Close mobile sidebar overlay
+            toggleSidebarMenu(false);
         });
     });
 

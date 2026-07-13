@@ -1353,4 +1353,136 @@ input:focus, select:focus, textarea:focus {
     color: var(--text-primary);
 }
 
+/* --- MOBILE RESPONSIVENESS AND COLLAPSIBLE MENU --- */
+
+/* Default desktop button state */
+.sidebar-toggle-btn, .sidebar-close-btn {
+    display: none !important;
+}
+
+/* Backdrop Overlay styling */
+.sidebar-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(2px);
+    z-index: 998;
+}
+
+@media (max-width: 768px) {
+    /* Main Layout */
+    .app-view {
+        grid-template-columns: 1fr;
+    }
+    
+    /* Navigation drawer overlay behavior */
+    .sidebar {
+        position: fixed;
+        top: 0;
+        left: -280px;
+        bottom: 0;
+        width: 260px;
+        z-index: 999;
+        transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 4px 0 24px rgba(0, 0, 0, 0.5);
+    }
+    .sidebar.active {
+        left: 0;
+    }
+    
+    .sidebar-overlay.active {
+        display: block;
+    }
+
+    /* Buttons inside sidebar / header */
+    .sidebar-toggle-btn {
+        display: inline-flex !important;
+    }
+    .sidebar-close-btn {
+        display: inline-flex !important;
+        background: transparent;
+        border: none;
+        color: var(--text-muted);
+        font-size: 1.3rem;
+        cursor: pointer;
+        transition: color 0.2s;
+    }
+    .sidebar-close-btn:hover {
+        color: var(--text-primary);
+    }
+    
+    /* Header adjustments */
+    .main-header {
+        padding: 0 16px;
+    }
+    .main-header h1 {
+        font-size: 1.25rem;
+    }
+    .view-content {
+        padding: 16px;
+    }
+
+    /* Grid wrapping on mobile */
+    .stats-grid {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+    .dashboard-charts-row, .dashboard-lists-row {
+        grid-template-columns: 1fr;
+        gap: 16px;
+    }
+    .section-actions-row {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 12px;
+    }
+    .search-input, .search-wrap {
+        max-width: 100%;
+    }
+    .btn-group {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+    
+    /* Personalization view adjustments */
+    .editor-workspace {
+        grid-template-columns: 1fr;
+        height: auto;
+        overflow-y: auto;
+    }
+    
+    .personalize-sidebar-left, .personalize-sidebar-right {
+        border: none;
+        border-bottom: 1px solid var(--border-color);
+        max-height: 400px;
+    }
+    
+    .canvas-stage {
+        padding: 10px;
+        min-height: 320px;
+    }
+}
+
+@media (max-width: 992px) {
+    /* Stacking editor sidebars on medium screens */
+    .editor-workspace {
+        grid-template-columns: 1fr;
+        height: auto;
+        overflow-y: auto;
+    }
+    .editor-sidebar-left {
+        border-right: none;
+        border-bottom: 1px solid var(--border-color);
+    }
+    .editor-sidebar-right {
+        border-left: none;
+        border-top: 1px solid var(--border-color);
+    }
+}
+
 

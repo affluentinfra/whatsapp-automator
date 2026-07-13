@@ -404,19 +404,6 @@ def save_template_fields(template_id, fields_list):
             supabase_client.table("template_fields").insert(fields_list).execute()
         return True
 
-def delete_template(template_id):
-    """Permanently delete a template and its associated fields."""
-    if IS_SUPABASE:
-        supabase_client.table('template_fields').delete().eq('template_id', template_id).execute()
-        supabase_client.table('templates').delete().eq('id', template_id).execute()
-        return True
-    conn = get_db_connection()
-    conn.execute('DELETE FROM template_fields WHERE template_id = ?', (template_id,))
-    conn.execute('DELETE FROM templates WHERE id = ?', (template_id,))
-    conn.commit()
-    conn.close()
-    return True
-
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("DELETE FROM template_fields WHERE template_id = ?", (template_id,))
@@ -435,6 +422,19 @@ def delete_template(template_id):
                 extra_styles_str
             )
         )
+    conn.commit()
+    conn.close()
+    return True
+
+def delete_template(template_id):
+    """Permanently delete a template and its associated fields."""
+    if IS_SUPABASE:
+        supabase_client.table('template_fields').delete().eq('template_id', template_id).execute()
+        supabase_client.table('templates').delete().eq('id', template_id).execute()
+        return True
+    conn = get_db_connection()
+    conn.execute('DELETE FROM template_fields WHERE template_id = ?', (template_id,))
+    conn.execute('DELETE FROM templates WHERE id = ?', (template_id,))
     conn.commit()
     conn.close()
     return True

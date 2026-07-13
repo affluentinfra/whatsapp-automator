@@ -214,7 +214,7 @@ def create_template():
     
     # Fetch template with fields
     full_template = database.get_template_by_id(template["id"])
-    return jsonify(full_template), 21
+    return jsonify(full_template), 201
 
 @app.route("/api/templates/<int:template_id>/fields", methods=["POST"])
 @token_required

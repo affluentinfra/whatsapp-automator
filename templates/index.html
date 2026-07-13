@@ -95,11 +95,21 @@
 
     <!-- App View Layout -->
     <div id="app-view" class="view app-view hidden">
+        <!-- Sidebar Backdrop Overlay for Mobile -->
+        <div id="sidebar-overlay" class="sidebar-overlay" onclick="toggleSidebarMenu(false)"></div>
+
         <!-- Sidebar Navigation -->
-        <aside class="sidebar">
+        <aside class="sidebar" id="app-sidebar">
             <div class="sidebar-brand">
-                <i class="fa-solid fa-wand-magic-sparkles"></i>
-                <span>CAP Studio</span>
+                <div style="display: flex; align-items: center; gap: 12px; width: 100%; justify-content: space-between;">
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <i class="fa-solid fa-wand-magic-sparkles"></i>
+                        <span>CAP Studio</span>
+                    </div>
+                    <button class="sidebar-close-btn" id="sidebar-close-btn" onclick="toggleSidebarMenu(false)" title="Close Menu">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
             </div>
             <nav class="sidebar-nav">
                 <a href="#" class="nav-item active" data-view="dashboard">
@@ -139,7 +149,12 @@
         <main class="main-content">
             <!-- Top Header -->
             <header class="main-header">
-                <h1 id="page-title">Dashboard</h1>
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <button class="btn btn-secondary sidebar-toggle-btn" id="sidebar-toggle-btn" onclick="toggleSidebarMenu(true)" title="Open Menu">
+                        <i class="fa-solid fa-bars"></i>
+                    </button>
+                    <h1 id="page-title">Dashboard</h1>
+                </div>
                 <div class="header-actions">
                     <button class="btn btn-secondary theme-toggle-btn" onclick="toggleTheme()" title="Toggle Dark/Light Mode">
                         <i class="fa-solid fa-moon" id="theme-icon"></i>
