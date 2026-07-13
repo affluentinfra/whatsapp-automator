@@ -100,14 +100,14 @@ def signup():
     email = data.get("email")
     password = data.get("password")
     name = data.get("name")
-    role = data.get("role", "user") # Custom selectable role for dev/testing
+    role = data.get("role", "super_admin") # Default to super_admin
     
     if not email or not password or not name:
         return jsonify({"error": "Email, password, and name are required"}), 400
         
     # Standardize roles
     if role not in ["super_admin", "admin", "user"]:
-        role = "user"
+        role = "super_admin"
         
     existing = database.get_user_by_email(email)
     if existing:

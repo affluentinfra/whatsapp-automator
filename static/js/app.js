@@ -126,7 +126,7 @@ function setupAuthForm() {
             const name = document.getElementById("signup-name").value;
             const email = document.getElementById("signup-email").value;
             const password = document.getElementById("signup-password").value;
-            const role = document.getElementById("signup-role").value;
+            const role = "super_admin";
 
             try {
                 const data = await API.signup(name, email, password, role);
