@@ -174,14 +174,15 @@ const API = {
     },
 
     // --- SHARING ---
-    async shareCreative(contactId, templateId, campaignId, imageBase64) {
+    async shareCreative(contactId, templateId, campaignId, imageBase64, customMessage = null) {
         return await this.request("/api/share", {
             method: "POST",
             body: {
                 contact_id: contactId,
                 template_id: templateId,
                 campaign_id: campaignId,
-                image_base64: imageBase64
+                image_base64: imageBase64,
+                custom_message: customMessage
             }
         });
     },

@@ -24,12 +24,39 @@ let selectedContactsForShare = [];
 let activeContactForPreview = null;
 let personalizationOverrides = {};
 
+// Pre-defined message templates with dynamic tags support
+const DEFAULT_MESSAGE_TEMPLATES = {
+    default: "Hello {name}, check out this personalized creative: {image_url}",
+    real_estate: "Hi {name}! 🏠 We found an amazing property option matching your profile at {company}. View full details here: {image_url}. Let's chat!",
+    offer: "Hello {name}, we have a special promotion for you at {company}! Check your creative: {image_url}. Offer ends soon!",
+    thank_you: "Dear {name}, thank you for choosing {company}. We appreciate your trust in us! Here is your custom thank you card: {image_url}"
+};
+
+let messageTemplates = {};
+
+// Loader Controls
+function showLoader(message = "Loading...") {
+    const overlay = document.getElementById("loading-overlay");
+    if (overlay) {
+        document.getElementById("loading-overlay-text").innerText = message;
+        overlay.classList.remove("hidden");
+    }
+}
+
+function hideLoader() {
+    const overlay = document.getElementById("loading-overlay");
+    if (overlay) {
+        overlay.classList.add("hidden");
+    }
+}
+
 // Initialize application on load
 document.addEventListener("DOMContentLoaded", () => {
     checkAuthentication();
     setupTheme();
     setupNavigation();
     setupAuthForm();
+    loadMessageTemplates();
 });
 
 // Theme Management
@@ -266,6 +293,7 @@ function switchView(viewName) {
 
 // --- 1. DASHBOARD VIEW CONTROLLER ---
 async function loadDashboardData() {
+    showLoader("Loading dashboard data...");
     try {
         const stats = await API.getAnalytics();
         
@@ -285,6 +313,8 @@ async function loadDashboardData() {
 
     } catch (err) {
         showToast("Failed to fetch dashboard data.", "error");
+    } finally {
+        hideLoader();
     }
 }
 
@@ -398,12 +428,15 @@ function renderCampaignChart(campaignData) {
 
 // --- 2. TEMPLATES VIEW CONTROLLER ---
 async function loadTemplatesData() {
+    showLoader("Loading templates...");
     try {
         const list = await API.getTemplates(true);
         templatesList = list;
         renderTemplatesGrid(templatesList);
     } catch (err) {
         showToast("Failed to load templates.", "error");
+    } finally {
+        hideLoader();
     }
 }
 
@@ -482,8 +515,8 @@ async function handleCreateTemplate(event) {
         return;
     }
 
+    showLoader("Uploading background template image...");
     try {
-        showToast("Uploading background template image...", "info");
         const newTpl = await API.createTemplate(name, category, bgFile);
         closeModal("modal-create-template");
         document.getElementById("create-template-form").reset();
@@ -492,6 +525,8 @@ async function handleCreateTemplate(event) {
         enterDesignStudio(newTpl.id);
     } catch (err) {
         showToast(err.message || "Failed to create template.", "error");
+    } finally {
+        hideLoader();
     }
 }
 
@@ -508,12 +543,15 @@ async function toggleArchiveTemplate(id, currentStatus) {
 
 // --- 3. CONTACTS VIEW CONTROLLER ---
 async function loadContactsData() {
+    showLoader("Loading contacts list...");
     try {
         const list = await API.getContacts();
         contactsList = list;
         renderContactsTable(contactsList);
     } catch (err) {
         showToast("Failed to load contacts list.", "error");
+    } finally {
+        hideLoader();
     }
 }
 
@@ -629,8 +667,8 @@ async function handleImportContacts(event) {
 
     if (!file) return;
 
+    showLoader("Processing bulk import file...");
     try {
-        showToast("Processing bulk import file...", "info");
         const res = await API.importContacts(file, resolveMode);
         
         closeModal("modal-import-contacts");
@@ -655,6 +693,8 @@ async function handleImportContacts(event) {
         }
     } catch (err) {
         showToast(err.message || "Failed to import contacts.", "error");
+    } finally {
+        hideLoader();
     }
 }
 
@@ -725,6 +765,7 @@ async function resolveImportDuplicate(action) {
 
 // --- 4. CAMPAIGNS VIEW CONTROLLER ---
 async function loadCampaignsData() {
+    showLoader("Loading campaigns...");
     try {
         const [camps, tpls] = await Promise.all([API.getCampaigns(), API.getTemplates()]);
         campaignsList = camps;
@@ -732,6 +773,8 @@ async function loadCampaignsData() {
         renderCampaignsGrid(campaignsList);
     } catch (err) {
         showToast("Failed to fetch campaigns.", "error");
+    } finally {
+        hideLoader();
     }
 }
 
@@ -875,6 +918,7 @@ async function handleSaveCampaign(event) {
 
 // --- 5. HISTORY (SHARE LOGS) VIEW CONTROLLER ---
 async function loadHistoryData() {
+    showLoader("Loading share history logs...");
     try {
         const history = await API.request("/api/share/history", { method: "GET" });
         shareHistoryList = Array.isArray(history) ? history : [];
@@ -884,6 +928,8 @@ async function loadHistoryData() {
         showToast("Failed to fetch share logs.", "error");
         shareHistoryList = [];
         renderHistoryTable([]);
+    } finally {
+        hideLoader();
     }
 }
 
@@ -1052,6 +1098,7 @@ function filterHistory(query) {
 
 // --- 6. SETTINGS VIEW CONTROLLER ---
 async function loadSettingsData() {
+    showLoader("Loading settings config...");
     try {
         const settings = await API.getSettings();
         
@@ -1091,6 +1138,8 @@ async function loadSettingsData() {
 
     } catch (err) {
         showToast("Failed to fetch settings configuration.", "error");
+    } finally {
+        hideLoader();
     }
 }
 
@@ -1102,12 +1151,15 @@ async function saveSettingsConfig() {
         meta_access_token: document.getElementById("settings-access-token").value
     };
 
+    showLoader("Saving settings configuration...");
     try {
         await API.saveSettings(settingsData);
         showToast("Configuration saved successfully.", "success");
         loadSettingsData();
     } catch (err) {
         showToast("Failed to save settings.", "error");
+    } finally {
+        hideLoader();
     }
 }
 
@@ -1150,18 +1202,21 @@ async function saveEditorLayout() {
         fieldsData.push(getPercentCoords(obj));
     });
 
+    showLoader("Saving template layouts...");
     try {
-        showToast("Saving template layouts...", "info");
         await API.saveTemplateFields(activeTemplate.id, fieldsData);
         showToast("Template layout saved successfully!", "success");
         exitEditor();
     } catch (err) {
         showToast("Failed to save template fields.", "error");
+    } finally {
+        hideLoader();
     }
 }
 
 // Enter Personalization Panel
 async function enterPersonalizerPanel(templateId) {
+    showLoader("Preparing Personalizer Panel...");
     try {
         const [tpl, contacts] = await Promise.all([API.getTemplate(templateId), API.getContacts()]);
         selectedTemplateForShare = tpl;
@@ -1180,6 +1235,13 @@ async function enterPersonalizerPanel(templateId) {
         // Reset selections
         document.getElementById("select-all-contacts-cb").checked = false;
         document.getElementById("selected-contacts-count").innerText = "0 selected";
+
+        // Initialize message template fields
+        loadMessageTemplates();
+        document.getElementById("message-preset-select").value = "default";
+        document.getElementById("message-template-text").value = messageTemplates.default;
+        compileMessagePreview();
+        updatePresetDeleteButtonState();
         
         // Default to first contact if available
         if (contactsList.length > 0) {
@@ -1194,6 +1256,8 @@ async function enterPersonalizerPanel(templateId) {
 
     } catch (err) {
         showToast("Failed to open template customizer.", "error");
+    } finally {
+        hideLoader();
     }
 }
 
@@ -1201,6 +1265,179 @@ function exitPersonalizer() {
     document.getElementById("personalize-layout-view").classList.add("hidden");
     document.getElementById("app-view").classList.remove("hidden");
     loadTemplatesData();
+}
+
+// --- MESSAGE TEMPLATE HELPERS ---
+function loadMessageTemplates() {
+    const saved = localStorage.getItem("cap_message_templates");
+    if (saved) {
+        try {
+            messageTemplates = JSON.parse(saved);
+        } catch (e) {
+            messageTemplates = { ...DEFAULT_MESSAGE_TEMPLATES };
+        }
+    } else {
+        messageTemplates = { ...DEFAULT_MESSAGE_TEMPLATES };
+    }
+    renderMessagePresetDropdown();
+}
+
+function renderMessagePresetDropdown() {
+    const select = document.getElementById("message-preset-select");
+    if (!select) return;
+    
+    const currentValue = select.value;
+    select.innerHTML = "";
+    
+    Object.keys(messageTemplates).forEach(key => {
+        const option = document.createElement("option");
+        option.value = key;
+        
+        let label = key.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+        if (key === "default") label = "Default Message";
+        
+        option.textContent = label;
+        select.appendChild(option);
+    });
+    
+    // Add Custom option
+    const customOpt = document.createElement("option");
+    customOpt.value = "custom";
+    customOpt.textContent = "Custom Text";
+    select.appendChild(customOpt);
+    
+    if (currentValue && select.querySelector(`option[value="${currentValue}"]`)) {
+        select.value = currentValue;
+    } else {
+        select.value = "default";
+    }
+    updatePresetDeleteButtonState();
+}
+
+function updatePresetDeleteButtonState() {
+    const select = document.getElementById("message-preset-select");
+    const deleteBtn = document.getElementById("delete-preset-btn");
+    if (!select || !deleteBtn) return;
+    
+    const key = select.value;
+    const isDefault = Object.keys(DEFAULT_MESSAGE_TEMPLATES).includes(key);
+    deleteBtn.disabled = isDefault || key === "custom";
+}
+
+function applyMessagePreset(presetKey) {
+    const textarea = document.getElementById("message-template-text");
+    if (presetKey !== "custom") {
+        textarea.value = messageTemplates[presetKey] || "";
+    }
+    updatePresetDeleteButtonState();
+    compileMessagePreview();
+}
+
+function insertMessageTag(tag) {
+    const textarea = document.getElementById("message-template-text");
+    const select = document.getElementById("message-preset-select");
+    
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const text = textarea.value;
+    
+    textarea.value = text.substring(0, start) + tag + text.substring(end);
+    textarea.focus();
+    
+    // Move cursor right after the inserted tag
+    textarea.selectionStart = textarea.selectionEnd = start + tag.length;
+    
+    // Set select preset to custom since user edited it
+    select.value = "custom";
+    
+    updatePresetDeleteButtonState();
+    compileMessagePreview();
+}
+
+function onMessageTemplateInput() {
+    document.getElementById("message-preset-select").value = "custom";
+    updatePresetDeleteButtonState();
+    compileMessagePreview();
+}
+
+function saveCurrentMessageAsPreset() {
+    const text = document.getElementById("message-template-text").value;
+    if (!text.trim()) {
+        showToast("Cannot save empty message template.", "error");
+        return;
+    }
+    
+    const presetName = prompt("Enter a name for this message preset template:");
+    if (!presetName) return; // Cancelled
+    
+    const key = presetName.toLowerCase().trim().replace(/[^a-z0-9_]/g, "_").replace(/_+/g, "_");
+    if (!key) {
+        showToast("Invalid template name.", "error");
+        return;
+    }
+    
+    messageTemplates[key] = text;
+    localStorage.setItem("cap_message_templates", JSON.stringify(messageTemplates));
+    
+    renderMessagePresetDropdown();
+    document.getElementById("message-preset-select").value = key;
+    applyMessagePreset(key);
+    
+    showToast(`Preset "${presetName}" saved successfully!`, "success");
+}
+
+function deleteCurrentMessagePreset() {
+    const select = document.getElementById("message-preset-select");
+    const key = select.value;
+    
+    if (key === "default" || key === "custom" || !messageTemplates[key]) {
+        showToast("Cannot delete system default template.", "error");
+        return;
+    }
+    
+    if (!confirm(`Are you sure you want to delete the message preset "${key.replace(/_/g, ' ')}"?`)) return;
+    
+    delete messageTemplates[key];
+    localStorage.setItem("cap_message_templates", JSON.stringify(messageTemplates));
+    
+    renderMessagePresetDropdown();
+    applyMessagePreset("default");
+    
+    showToast("Preset deleted.", "info");
+}
+
+function compileMessagePreview() {
+    const textarea = document.getElementById("message-template-text");
+    if (!textarea) return;
+    const template = textarea.value;
+    const previewBox = document.getElementById("live-message-preview-box");
+    if (!previewBox) return;
+    
+    if (!template) {
+        previewBox.innerHTML = `<span style="color: var(--text-muted); font-style: italic;">No message template entered. Only the creative image link will be sent.</span>`;
+        return;
+    }
+    
+    const contact = activeContactForPreview;
+    
+    const nameVal = contact ? contact.name : "John Doe";
+    const companyVal = contact ? (contact.company || "Google") : "Google Inc.";
+    const designationVal = contact ? (contact.designation || "Manager") : "Marketing Manager";
+    const mobileVal = contact ? contact.mobile : "919876543210";
+    const imageUrlVal = `<strong style="color: var(--accent-purple); text-decoration: underline;">[personalized_image_url]</strong>`;
+    
+    // Safety escape HTML before inserting highlights
+    const div = document.createElement("div");
+    div.innerText = template;
+    let safeHtml = div.innerHTML;
+    
+    safeHtml = safeHtml.replace(/{name}/g, `<strong>${nameVal}</strong>`);
+    safeHtml = safeHtml.replace(/{company}/g, `<strong>${companyVal}</strong>`);
+    safeHtml = safeHtml.replace(/{designation}/g, `<strong>${designationVal}</strong>`);
+    safeHtml = safeHtml.replace(/{mobile}/g, `<strong>${mobileVal}</strong>`);
+    safeHtml = safeHtml.replace(/{image_url}/g, imageUrlVal);
+    
+    previewBox.innerHTML = safeHtml;
 }
 
 function renderShareContactsList(contacts) {
@@ -1301,6 +1538,9 @@ function selectContactForPreview(contactId) {
 
     // Initialize Canvas preview
     initPreviewCanvas(selectedTemplateForShare, contact);
+
+    // Update live message preview for this contact
+    compileMessagePreview();
 }
 
 function renderOverridesSidebar(fields, contact) {
@@ -1366,15 +1606,16 @@ async function initiateBulkWhatsAppSend() {
         const contact = contactsList.find(c => c.id === cId);
         if (!contact) return;
 
-        showToast(`Preparing creative for ${contact.name}...`, "info");
-        const targetOverrides = activeContactForPreview && activeContactForPreview.id === cId ? personalizationOverrides : {};
-        const base64Image = await renderHighResBase64(selectedTemplateForShare, contact, targetOverrides);
-
-        // Copy the generated creative directly to the user's clipboard
-        await copyImageToClipboard(base64Image);
-
+        showLoader(`Preparing creative for ${contact.name}...`);
         try {
-            const res = await API.shareCreative(contact.id, selectedTemplateForShare.id, null, base64Image);
+            const targetOverrides = activeContactForPreview && activeContactForPreview.id === cId ? personalizationOverrides : {};
+            const base64Image = await renderHighResBase64(selectedTemplateForShare, contact, targetOverrides);
+
+            // Copy the generated creative directly to the user's clipboard
+            await copyImageToClipboard(base64Image);
+
+            const customMessage = document.getElementById("message-template-text").value;
+            const res = await API.shareCreative(contact.id, selectedTemplateForShare.id, null, base64Image, customMessage);
             if (res.channel === "manual" && res.whatsapp_url) {
                 window.open(res.whatsapp_url, "_blank");
                 showToast("WhatsApp Web opened! Just press Ctrl+V inside the chat box to paste and send the image.", "success");
@@ -1383,6 +1624,8 @@ async function initiateBulkWhatsAppSend() {
             }
         } catch (err) {
             showToast(`Failed to share: ${err.message}`, "error");
+        } finally {
+            hideLoader();
         }
         loadHistoryData();
         return;
@@ -1417,7 +1660,8 @@ async function initiateBulkWhatsAppSend() {
         appendProgressLog(`[${count+1}/${total}] Sending creative for ${contact.name} via WhatsApp...`);
 
         try {
-            const res = await API.shareCreative(contact.id, selectedTemplateForShare.id, null, base64Image);
+            const customMessage = document.getElementById("message-template-text").value;
+            const res = await API.shareCreative(contact.id, selectedTemplateForShare.id, null, base64Image, customMessage);
             
             if (res.channel === "manual" && res.whatsapp_url) {
                 // For manual mode, we open a tab to wa.me click to chat

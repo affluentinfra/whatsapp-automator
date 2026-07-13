@@ -22,6 +22,14 @@
     <!-- Notification Toast -->
     <div id="toast-container" class="toast-container"></div>
 
+    <!-- Global Loading Overlay -->
+    <div id="loading-overlay" class="loading-overlay hidden">
+        <div class="loading-spinner-container">
+            <div class="loading-spinner"></div>
+            <p id="loading-overlay-text">Loading...</p>
+        </div>
+    </div>
+
     <!-- Login View -->
     <div id="login-view" class="view login-view">
         <div class="login-card">
@@ -574,10 +582,10 @@
                     <div class="property-group">
                         <label><i class="fa-solid fa-layer-group"></i> Layer Order</label>
                         <div class="format-buttons-row">
-                            <button type="button" class="btn btn-secondary btn-sm" style="flex: 1; padding: 6px;" onclick="arrangeLayer('front')" title="Bring to Front"><i class="fa-solid fa-angles-up"></i> Front</button>
-                            <button type="button" class="btn btn-secondary btn-sm" style="flex: 1; padding: 6px;" onclick="arrangeLayer('forward')" title="Bring Forward"><i class="fa-solid fa-angle-up"></i> Up</button>
-                            <button type="button" class="btn btn-secondary btn-sm" style="flex: 1; padding: 6px;" onclick="arrangeLayer('backward')" title="Send Backward"><i class="fa-solid fa-angle-down"></i> Down</button>
-                            <button type="button" class="btn btn-secondary btn-sm" style="flex: 1; padding: 6px;" onclick="arrangeLayer('back')" title="Send to Back"><i class="fa-solid fa-angles-down"></i> Back</button>
+                            <button type="button" class="btn-format" onclick="arrangeLayer('front')" title="Bring to Front"><i class="fa-solid fa-angles-up"></i></button>
+                            <button type="button" class="btn-format" onclick="arrangeLayer('forward')" title="Bring Forward"><i class="fa-solid fa-angle-up"></i></button>
+                            <button type="button" class="btn-format" onclick="arrangeLayer('backward')" title="Send Backward"><i class="fa-solid fa-angle-down"></i></button>
+                            <button type="button" class="btn-format" onclick="arrangeLayer('back')" title="Send to Back"><i class="fa-solid fa-angles-down"></i></button>
                         </div>
                     </div>
 
@@ -648,6 +656,36 @@
                             <strong id="preview-contact-name">Select a contact</strong>
                             <span id="preview-contact-mobile">-</span>
                             <span id="preview-contact-company" class="mt-5">-</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="message-template-card mt-20">
+                    <h4>Message Template</h4>
+                    <div class="form-group mt-10">
+                        <label>Select Preset</label>
+                        <select id="message-preset-select" onchange="applyMessagePreset(this.value)">
+                            <!-- Populated dynamically -->
+                        </select>
+                        <div class="template-actions-row mt-5" style="display: flex; gap: 8px;">
+                            <button type="button" class="btn btn-secondary btn-sm" style="flex: 1; padding: 6px; font-size: 0.75rem;" onclick="saveCurrentMessageAsPreset()" title="Save current text as a reusable template"><i class="fa-regular fa-floppy-disk"></i> Save Preset</button>
+                            <button type="button" class="btn btn-danger btn-sm" style="padding: 6px 12px; font-size: 0.75rem;" onclick="deleteCurrentMessagePreset()" id="delete-preset-btn" title="Delete current template preset" disabled><i class="fa-regular fa-trash-can"></i></button>
+                        </div>
+                    </div>
+                    <div class="form-group mt-10">
+                        <label>Message Content</label>
+                        <textarea id="message-template-text" rows="4" style="resize: vertical; font-family: var(--font-body);" placeholder="Type message. Use placeholder tags like {name}, {company}, {image_url}..." oninput="onMessageTemplateInput()"></textarea>
+                    </div>
+                    <div class="template-tags-helper mt-5">
+                        <span class="badge badge-tag" onclick="insertMessageTag('{name}')" title="Insert Recipient Name">{name}</span>
+                        <span class="badge badge-tag" onclick="insertMessageTag('{company}')" title="Insert Company Name">{company}</span>
+                        <span class="badge badge-tag" onclick="insertMessageTag('{image_url}')" title="Insert Personalized Image Link">{image_url}</span>
+                    </div>
+                    
+                    <div class="live-message-preview-container mt-15">
+                        <label><i class="fa-regular fa-comment-dots"></i> Live Preview (Active Recipient)</label>
+                        <div class="live-message-preview" id="live-message-preview-box">
+                            <!-- Compiled message preview -->
                         </div>
                     </div>
                 </div>

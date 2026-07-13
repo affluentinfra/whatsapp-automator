@@ -502,6 +502,7 @@ def share_creative():
     template_id = data.get("template_id")
     campaign_id = data.get("campaign_id") # Can be null for direct sharing
     image_base64 = data.get("image_base64") # Image generated on canvas
+    custom_message = data.get("custom_message")
     
     if not contact_id or not image_base64:
         return jsonify({"error": "Contact ID and generated image data are required"}), 400
@@ -534,10 +535,21 @@ def share_creative():
     whatsapp_url = ""
     message_id = None
     
+    # Compile dynamic message caption/text
+    full_image_url = f"{request.host_url.rstrip('/')}{image_url}"
+    if custom_message:
+        message = custom_message
+        message = message.replace("{name}", contact.get("name", ""))
+        message = message.replace("{mobile}", contact.get("mobile", ""))
+        message = message.replace("{company}", contact.get("company", "") or "")
+        message = message.replace("{designation}", contact.get("designation", "") or "")
+        message = message.replace("{notes}", contact.get("notes", "") or "")
+        message = message.replace("{image_url}", full_image_url)
+    else:
+        message = f"Hello {contact['name']}, check out this personalized creative: {full_image_url}"
+
     # Mode 1: Manual Sharing URL
     if sharing_mode == "manual":
-        # Check text details
-        message = f"Hello {contact['name']}, check out this personalized creative: {request.host_url.rstrip('/')}{image_url}"
         whatsapp_url = f"https://wa.me/{contact['mobile']}?text={requests.utils.quote(message)}"
     
     # Mode 2: Meta API integration (Preferred)
@@ -548,7 +560,6 @@ def share_creative():
         if not phone_id or not access_token:
             # Fallback to manual share link but flag API failed
             delivery_status = "failed"
-            message = f"Hello {contact['name']}, check out this personalized creative: {request.host_url.rstrip('/')}{image_url}"
             whatsapp_url = f"https://api.whatsapp.com/send?phone={contact['mobile']}&text={requests.utils.quote(message)}"
             print("API configuration missing. Reverted to Manual sharing.")
         else:
@@ -566,8 +577,8 @@ def share_creative():
                 "to": contact["mobile"],
                 "type": "image",
                 "image": {
-                    "link": f"{request.host_url.rstrip('/')}{image_url}",
-                    "caption": f"Hello {contact['name']}, thank you for connecting with us!"
+                    "link": full_image_url,
+                    "caption": message
                 }
             }
             try:
