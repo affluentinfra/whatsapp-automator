@@ -562,6 +562,28 @@ input:focus, select:focus, textarea:focus {
     height: 100%;
     object-fit: cover;
 }
+/* Broken/missing image fallback state */
+.template-thumbnail.thumbnail-broken {
+    background: repeating-linear-gradient(
+        45deg,
+        rgba(99,102,241,0.05),
+        rgba(99,102,241,0.05) 10px,
+        transparent 10px,
+        transparent 20px
+    );
+    border: 2px dashed rgba(99,102,241,0.3);
+}
+.template-thumbnail.thumbnail-broken::after {
+    content: "\f127  Image not found";
+    font-family: "Font Awesome 6 Free", sans-serif;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    position: absolute;
+    bottom: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    white-space: nowrap;
+}
 .template-badge {
     position: absolute;
     top: 12px;
@@ -592,11 +614,18 @@ input:focus, select:focus, textarea:focus {
 .template-card-footer {
     display: flex;
     gap: 10px;
+    flex-wrap: wrap;
 }
 .template-card-footer button {
     flex: 1;
     font-size: 0.8rem;
     padding: 8px 12px;
+    min-width: 0;
+}
+/* Permanent delete stays compact, not stretched */
+.template-card-footer .btn-danger:has(.fa-skull-crossbones) {
+    flex: 0 0 auto;
+    padding: 8px 14px;
 }
 
 /* --- CONTACTS SUB-VIEW --- */

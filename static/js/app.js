@@ -460,11 +460,21 @@ function renderTemplatesGrid(templates) {
 
         const isAuthorizedAdmin = currentUser.role === "super_admin" || currentUser.role === "admin";
         
+        // Fix image URL: make it absolute so it always resolves to the correct Flask server
+        // regardless of which tab/port the user has open in their browser
+        const thumbnailUrl = t.background_url.startsWith("http")
+            ? t.background_url
+            : `${window.location.origin}${t.background_url}`;
+
         const adminControls = isAuthorizedAdmin ? `
-            <button class="btn btn-secondary" onclick="enterDesignStudio(${t.id})" title="Add dynamic placeholders"><i class="fa-solid fa-pen-nib"></i> Design</button>
-            <button class="btn ${t.status === 'active' ? 'btn-danger' : 'btn-warning'}" onclick="toggleArchiveTemplate(${t.id}, '${t.status}')">
+            <button class="btn btn-secondary" onclick="enterDesignStudio(${t.id})" title="Design template"><i class="fa-solid fa-pen-nib"></i> Design</button>
+            <button class="btn ${t.status === 'active' ? 'btn-danger' : 'btn-warning'}" onclick="toggleArchiveTemplate(${t.id}, '${t.status}')" title="${t.status === 'active' ? 'Archive' : 'Restore'}">
                 <i class="fa-regular ${t.status === 'active' ? 'fa-trash-can' : 'fa-folder-open'}"></i>
             </button>
+            ${t.status === 'archived' && isAuthorizedAdmin ? `
+            <button class="btn btn-danger" onclick="deleteTemplatePermanently(${t.id}, '${t.name.replace(/'/g, "&#39;")}')" title="Delete Forever">
+                <i class="fa-solid fa-skull-crossbones"></i>
+            </button>` : ""}
         ` : "";
 
         const shareBtn = t.status === "active" ? `
@@ -473,7 +483,7 @@ function renderTemplatesGrid(templates) {
 
         card.innerHTML = `
             <div class="template-thumbnail">
-                <img src="${t.background_url}" alt="${t.name}">
+                <img src="${thumbnailUrl}" alt="${t.name}" onerror="this.style.display='none'; this.parentElement.classList.add('thumbnail-broken');">
                 <span class="template-badge">${t.category}</span>
                 ${statusBadge}
             </div>
@@ -534,10 +544,21 @@ async function toggleArchiveTemplate(id, currentStatus) {
     const targetStatus = currentStatus === "active" ? "archived" : "active";
     try {
         await API.updateTemplateStatus(id, targetStatus);
-        showToast(`Template ${targetStatus === 'archived' ? 'archived' : 'activated'} successfully.`, "success");
+        showToast(`Template ${targetStatus === 'archived' ? 'archived (use restore or delete forever)' : 'restored to active'} successfully.`, "success");
         loadTemplatesData();
     } catch (err) {
         showToast("Failed to modify template status.", "error");
+    }
+}
+
+async function deleteTemplatePermanently(id, name) {
+    if (!confirm(`⚠️ PERMANENT DELETE\n\nAre you absolutely sure you want to delete "${name}"?\n\nThis cannot be undone — the template and all its layout data will be removed forever.`)) return;
+    try {
+        await API.deleteTemplate(id);
+        showToast(`Template "${name}" permanently deleted.`, "success");
+        loadTemplatesData();
+    } catch (err) {
+        showToast(`Failed to permanently delete template: ${err.message}`, "error");
     }
 }
 

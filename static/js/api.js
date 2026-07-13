@@ -118,6 +118,12 @@ const API = {
         });
     },
 
+    async deleteTemplate(templateId) {
+        return await this.request(`/api/templates/${templateId}`, {
+            method: "DELETE"
+        });
+    },
+
     // --- CONTACTS ---
     async getContacts() {
         return await this.request("/api/contacts");
