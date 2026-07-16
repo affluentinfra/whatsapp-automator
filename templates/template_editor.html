@@ -487,15 +487,8 @@
     <button class="tool-btn" id="tool-image" title="Add Image" onclick="document.getElementById('img-upload').click()">
       <i class="fa-regular fa-image"></i>
     </button>
-    <div class="tool-separator"></div>
-    <button class="tool-btn" id="tool-rect" title="Rectangle" onclick="addShape('rect')">
-      <i class="fa-regular fa-square"></i>
-    </button>
-    <button class="tool-btn" id="tool-circle" title="Circle / Ellipse" onclick="addShape('circle')">
-      <i class="fa-regular fa-circle"></i>
-    </button>
-    <button class="tool-btn" id="tool-line" title="Line" onclick="addShape('line')">
-      <i class="fa-solid fa-minus"></i>
+    <button class="tool-btn" id="tool-shapes" title="Shapes" onclick="openShapesPanel()">
+      <i class="fa-solid fa-shapes"></i>
     </button>
     <div class="tool-separator"></div>
     <button class="tool-btn" id="tool-sticker" title="Sticker / Emoji" onclick="openStickerPanel()">
@@ -850,16 +843,61 @@ function addTextObject() {
 }
 
 // ── ADD SHAPE ───────────────────────────────────────────
+function openShapesPanel() {
+  const existing = document.getElementById('shapes-popup');
+  if (existing) { existing.remove(); return; }
+  
+  const popup = document.createElement('div');
+  popup.id = 'shapes-popup';
+  popup.style.cssText = 'position:fixed;z-index:9999;background:#141420;border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:8px;display:flex;flex-direction:column;gap:4px;box-shadow:0 20px 40px rgba(0,0,0,0.5);width:160px;';
+  popup.style.left = '64px'; popup.style.top = '220px';
+
+  const shapes = [
+    { name: 'Plain Box', type: 'box', icon: 'fa-regular fa-square' },
+    { name: 'Curved Rectangle', type: 'curved_rect', icon: 'fa-regular fa-square-minus' },
+    { name: 'Circle', type: 'circle', icon: 'fa-regular fa-circle' },
+    { name: 'Oval / Ellipse', type: 'ellipse', icon: 'fa-solid fa-circle' },
+    { name: 'Horizontal Line', type: 'line', icon: 'fa-solid fa-minus' },
+    { name: 'Vertical Line', type: 'vertical_line', icon: 'fa-solid fa-grip-lines-vertical' }
+  ];
+
+  shapes.forEach(sh => {
+    const btn = document.createElement('button');
+    btn.innerHTML = `<i class="${sh.icon}" style="margin-right:10px;width:14px;color:#7c3aed;"></i>${sh.name}`;
+    btn.style.cssText = 'text-align:left;font-size:11px;background:none;border:none;cursor:pointer;padding:6px 10px;border-radius:6px;color:#e2e8f0;transition:background 0.15s;display:flex;align-items:center;';
+    btn.onmouseenter = () => btn.style.background = 'rgba(255,255,255,0.06)';
+    btn.onmouseleave = () => btn.style.background = 'none';
+    btn.onclick = () => {
+      addShape(sh.type);
+      popup.remove();
+    };
+    popup.appendChild(btn);
+  });
+
+  document.body.appendChild(popup);
+  setTimeout(() => document.addEventListener('click', function rm(e) {
+    if (!popup.contains(e.target)) { popup.remove(); document.removeEventListener('click', rm); }
+  }), 100);
+}
+
 function addShape(type) {
   let obj;
   const opts = { left: 100, top: 100, fill: '#7c3aed', opacity: 0.85 };
-  if (type === 'rect') {
-    obj = new fabric.Rect({ ...opts, width: 200, height: 100, rx: 8, ry: 8, customName: 'Rectangle' });
+  
+  if (type === 'box' || type === 'rect') {
+    obj = new fabric.Rect({ ...opts, width: 200, height: 100, rx: 0, ry: 0, customName: 'Box' });
+  } else if (type === 'curved_rect') {
+    obj = new fabric.Rect({ ...opts, width: 200, height: 100, rx: 16, ry: 16, customName: 'Curved Rectangle' });
   } else if (type === 'circle') {
-    obj = new fabric.Ellipse({ ...opts, rx: 80, ry: 80, customName: 'Ellipse' });
+    obj = new fabric.Circle({ ...opts, radius: 60, customName: 'Circle' });
+  } else if (type === 'ellipse') {
+    obj = new fabric.Ellipse({ ...opts, rx: 80, ry: 50, customName: 'Ellipse' });
   } else if (type === 'line') {
-    obj = new fabric.Line([50, 100, 250, 100], { stroke: '#ffffff', strokeWidth: 3, customName: 'Line' });
+    obj = new fabric.Line([50, 100, 250, 100], { stroke: '#7c3aed', strokeWidth: 4, customName: 'Line' });
+  } else if (type === 'vertical_line') {
+    obj = new fabric.Line([100, 50, 100, 250], { stroke: '#7c3aed', strokeWidth: 4, customName: 'Vertical Line' });
   }
+  
   if (obj) {
     canvas.add(obj);
     canvas.setActiveObject(obj);
