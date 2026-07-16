@@ -126,3 +126,10 @@ ON storage.objects FOR UPDATE
 TO public 
 USING (bucket_id = 'cap-creatives');
 
+-- 13. Create Database Indexes for performance
+CREATE INDEX IF NOT EXISTS idx_contacts_mobile ON contacts(mobile);
+CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+CREATE INDEX IF NOT EXISTS idx_share_history_msg ON share_history(message_id);
+CREATE INDEX IF NOT EXISTS idx_share_history_contact_template ON share_history(contact_id, template_id);
+
+

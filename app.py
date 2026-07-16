@@ -516,7 +516,9 @@ def share_creative():
     # Save Generated Image to storage
     img_data = image_base64.split(",")[1] if "," in image_base64 else image_base64
     img_bytes = base64.b64decode(img_data)
-    filename = f"creative_{uuid.uuid4().hex}.png"
+    import hashlib
+    img_hash = hashlib.sha256(img_bytes).hexdigest()
+    filename = f"creative_{img_hash}.png"
     image_url = storage.save_file(img_bytes, filename, folder="creatives", force_supabase=True)
     
     
