@@ -81,7 +81,16 @@ CREATE TABLE IF NOT EXISTS share_history (
     message_id TEXT
 );
 
--- 8. Create Settings Table
+-- 8. Create Share Link Events Table
+CREATE TABLE IF NOT EXISTS share_link_events (
+    id SERIAL PRIMARY KEY,
+    share_id INTEGER REFERENCES share_history(id) ON DELETE CASCADE,
+    event_type TEXT NOT NULL, -- 'opened', 'clicked', 'deleted', 'expired', 'resent', 'failed', 'delivered', 'read'
+    event_timestamp TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    metadata TEXT
+);
+
+-- 9. Create Settings Table
 CREATE TABLE IF NOT EXISTS settings (
     key TEXT PRIMARY KEY,
     value TEXT NOT NULL
@@ -131,5 +140,17 @@ CREATE INDEX IF NOT EXISTS idx_contacts_mobile ON contacts(mobile);
 CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
 CREATE INDEX IF NOT EXISTS idx_share_history_msg ON share_history(message_id);
 CREATE INDEX IF NOT EXISTS idx_share_history_contact_template ON share_history(contact_id, template_id);
+
+-- 14. Disable Row Level Security (RLS) on all application tables to allow API access
+ALTER TABLE users DISABLE ROW LEVEL SECURITY;
+ALTER TABLE contacts DISABLE ROW LEVEL SECURITY;
+ALTER TABLE templates DISABLE ROW LEVEL SECURITY;
+ALTER TABLE template_fields DISABLE ROW LEVEL SECURITY;
+ALTER TABLE campaigns DISABLE ROW LEVEL SECURITY;
+ALTER TABLE campaign_templates DISABLE ROW LEVEL SECURITY;
+ALTER TABLE share_history DISABLE ROW LEVEL SECURITY;
+ALTER TABLE share_link_events DISABLE ROW LEVEL SECURITY;
+ALTER TABLE settings DISABLE ROW LEVEL SECURITY;
+
 
 

@@ -50,6 +50,8 @@ def save_file(file_bytes, filename, folder="templates", force_supabase=True):
             }
         )
         public_url = supabase_client.storage.from_(bucket_name).get_public_url(file_path)
+        if public_url.endswith("?"):
+            public_url = public_url.rstrip("?")
         return public_url
     except Exception as e:
         error_details = f"Supabase upload error for '{filename}': {str(e)}"

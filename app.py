@@ -531,7 +531,10 @@ def share_creative():
     message_id = None
     
     # Compile dynamic message caption/text
-    full_image_url = f"{request.host_url.rstrip('/')}{image_url}"
+    if image_url.startswith("http://") or image_url.startswith("https://"):
+        full_image_url = image_url
+    else:
+        full_image_url = f"{request.host_url.rstrip('/')}{image_url}"
     if custom_message:
         message = custom_message
         message = message.replace("{name}", contact.get("name", ""))
