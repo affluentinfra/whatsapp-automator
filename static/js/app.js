@@ -181,7 +181,7 @@ function showAppView() {
     // Display user profile info
     document.getElementById("user-display-name").innerText = currentUser.name;
     document.getElementById("user-display-role").innerText = currentUser.role.replace("_", " ");
-    
+
     // Initials for avatar
     const initials = currentUser.name.split(" ").map(n => n[0]).join("").substring(0, 2).toUpperCase();
     document.getElementById("user-avatar-initials").innerText = initials;
@@ -205,7 +205,7 @@ function toggleSidebarMenu(show) {
     const sidebar = document.getElementById("app-sidebar");
     const overlay = document.getElementById("sidebar-overlay");
     if (!sidebar || !overlay) return;
-    
+
     if (show) {
         sidebar.classList.add("active");
         overlay.classList.add("active");
@@ -258,7 +258,7 @@ function setupNavigation() {
 
 function switchView(viewName) {
     currentSubView = viewName;
-    
+
     // Update active state in sidebar
     const navItems = document.querySelectorAll(".nav-item");
     navItems.forEach(item => {
@@ -296,7 +296,7 @@ async function loadDashboardData() {
     showLoader("Loading dashboard data...");
     try {
         const stats = await API.getAnalytics();
-        
+
         // Update stats card numbers
         document.getElementById("stat-total-shares").innerText = stats.total_shares;
         document.getElementById("stat-total-contacts").innerText = stats.total_contacts;
@@ -321,7 +321,7 @@ async function loadDashboardData() {
 function renderUserLeaderboard(userCounts) {
     const list = document.getElementById("user-leaderboard");
     list.innerHTML = "";
-    
+
     const sorted = Object.entries(userCounts || {}).sort((a, b) => b[1] - a[1]).slice(0, 5);
     if (sorted.length === 0) {
         list.innerHTML = `<li class="empty-state">No sharing history found.</li>`;
@@ -343,7 +343,7 @@ function renderUserLeaderboard(userCounts) {
 function renderTemplateLeaderboard(templateCounts) {
     const list = document.getElementById("template-leaderboard");
     list.innerHTML = "";
-    
+
     const sorted = Object.entries(templateCounts || {}).sort((a, b) => b[1] - a[1]).slice(0, 5);
     if (sorted.length === 0) {
         list.innerHTML = `<li class="empty-state">No sharing history found.</li>`;
@@ -452,14 +452,14 @@ function renderTemplatesGrid(templates) {
     templates.forEach(t => {
         const card = document.createElement("div");
         card.className = "template-card";
-        
+
         let statusBadge = "";
         if (t.status === "archived") {
             statusBadge = `<span class="template-badge bg-warning">Archived</span>`;
         }
 
         const isAuthorizedAdmin = currentUser.role === "super_admin" || currentUser.role === "admin";
-        
+
         // Fix image URL: make it absolute so it always resolves to the correct Flask server
         // regardless of which tab/port the user has open in their browser
         const thumbnailUrl = t.background_url.startsWith("http")
@@ -502,8 +502,8 @@ function renderTemplatesGrid(templates) {
 
 function filterTemplates(query) {
     const q = query.toLowerCase();
-    const filtered = templatesList.filter(t => 
-        t.name.toLowerCase().includes(q) || 
+    const filtered = templatesList.filter(t =>
+        t.name.toLowerCase().includes(q) ||
         t.category.toLowerCase().includes(q)
     );
     renderTemplatesGrid(filtered);
@@ -530,7 +530,7 @@ async function handleCreateTemplate(event) {
         const newTpl = await API.createTemplate(name, category, bgFile);
         closeModal("modal-create-template");
         document.getElementById("create-template-form").reset();
-        
+
         // Auto navigate to designer editor view
         enterDesignStudio(newTpl.id);
     } catch (err) {
@@ -606,10 +606,10 @@ function renderContactsTable(contacts) {
 
 function filterContacts(query) {
     const q = query.toLowerCase();
-    const filtered = contactsList.filter(c => 
-        c.name.toLowerCase().includes(q) || 
-        c.company.toLowerCase().includes(q) || 
-        c.designation.toLowerCase().includes(q) || 
+    const filtered = contactsList.filter(c =>
+        c.name.toLowerCase().includes(q) ||
+        c.company.toLowerCase().includes(q) ||
+        c.designation.toLowerCase().includes(q) ||
         c.mobile.includes(q)
     );
     renderContactsTable(filtered);
@@ -691,9 +691,9 @@ async function handleImportContacts(event) {
     showLoader("Processing bulk import file...");
     try {
         const res = await API.importContacts(file, resolveMode);
-        
+
         closeModal("modal-import-contacts");
-        
+
         if (resolveMode === "ask" && res.duplicates && res.duplicates.length > 0) {
             // Queue duplicate records for user decision
             duplicateResolutionQueue = res.duplicates;
@@ -705,7 +705,7 @@ async function handleImportContacts(event) {
                 updated: res.updated,
                 skipped: res.skipped
             };
-            
+
             triggerNextDuplicatePrompt();
         } else {
             // Clean import complete
@@ -733,12 +733,12 @@ function triggerNextDuplicatePrompt() {
     const imported = currentDup.imported_data;
 
     document.getElementById("res-mobile-display").innerText = existing.mobile;
-    
+
     // Existing values
     document.getElementById("res-existing-name").innerText = existing.name;
     document.getElementById("res-existing-company").innerText = existing.company || "-";
     document.getElementById("res-existing-designation").innerText = existing.designation || "-";
-    
+
     // Imported values
     document.getElementById("res-imported-name").innerText = imported.name;
     document.getElementById("res-imported-company").innerText = imported.company || "-";
@@ -776,7 +776,7 @@ async function resolveImportDuplicate(action) {
             // "skip"
             importStats.skipped++;
         }
-        
+
         currentResolutionIndex++;
         triggerNextDuplicatePrompt();
     } catch (err) {
@@ -811,11 +811,11 @@ function renderCampaignsGrid(campaigns) {
     campaigns.forEach(c => {
         const card = document.createElement("div");
         card.className = "campaign-card";
-        
+
         const isAuthorizedAdmin = currentUser.role === "super_admin" || currentUser.role === "admin";
-        
-        const statusBadge = c.status === "active" ? 
-            `<span class="badge badge-user">Active</span>` : 
+
+        const statusBadge = c.status === "active" ?
+            `<span class="badge badge-user">Active</span>` :
             `<span class="badge badge-status-failed">Inactive</span>`;
 
         const actionButtons = isAuthorizedAdmin ? `
@@ -906,7 +906,7 @@ function openEditCampaignModal(campaignId) {
 async function handleSaveCampaign(event) {
     event.preventDefault();
     const id = document.getElementById("campaign-id-field").value;
-    
+
     // Get checked templates
     const cbs = document.getElementsByName("camp_templates_cbs");
     const templateIds = [];
@@ -968,13 +968,13 @@ function renderHistoryTable(logs) {
 
     logs.forEach(l => {
         const tr = document.createElement("tr");
-        
+
         const dateStr = new Date(l.share_timestamp).toLocaleString();
         const lastEvent = l.last_event ? new Date(l.last_event).toLocaleDateString() : "—";
         const eventCount = l.event_count || 0;
 
-        const channelBadge = l.channel === "api" ? 
-            `<span class="badge badge-admin"><i class="fa-solid fa-code"></i> API</span>` : 
+        const channelBadge = l.channel === "api" ?
+            `<span class="badge badge-admin"><i class="fa-solid fa-code"></i> API</span>` :
             `<span class="badge badge-secondary"><i class="fa-solid fa-arrow-up-right-from-square"></i> Manual</span>`;
 
         const statusColors = {
@@ -990,7 +990,7 @@ function renderHistoryTable(logs) {
             ${l.delivery_status || "sent"}
         </span>`;
 
-        const eventBadge = eventCount > 0 
+        const eventBadge = eventCount > 0
             ? `<span class="badge" style="background:#f59e0b20;color:#f59e0b;border:1px solid #f59e0b40;cursor:pointer;" onclick="viewShareEvents(${l.id})">
                 <i class="fa-solid fa-chart-line"></i> ${eventCount} event${eventCount > 1 ? 's' : ''}
                </span>`
@@ -1030,7 +1030,7 @@ async function viewShareEvents(shareId) {
     try {
         const events = await API.request(`/api/share/${shareId}/events`, { method: "GET" });
         const share = shareHistoryList.find(s => s.id === shareId);
-        
+
         const eventIcons = {
             sent: { icon: "fa-paper-plane", color: "#3b82f6" },
             delivered: { icon: "fa-circle-check", color: "#22c55e" },
@@ -1054,9 +1054,9 @@ async function viewShareEvents(shareId) {
             events.forEach(e => {
                 const cfg = eventIcons[e.event_type] || { icon: "fa-circle", color: "#6b7280" };
                 const ts = new Date(e.event_timestamp).toLocaleString();
-                const meta = e.metadata && typeof e.metadata === "object" 
-                    ? Object.entries(e.metadata).filter(([k,v]) => v && k !== "user_agent")
-                        .map(([k,v]) => `<span style="opacity:0.6;font-size:0.72rem;">${k}: ${v}</span>`).join(" · ")
+                const meta = e.metadata && typeof e.metadata === "object"
+                    ? Object.entries(e.metadata).filter(([k, v]) => v && k !== "user_agent")
+                        .map(([k, v]) => `<span style="opacity:0.6;font-size:0.72rem;">${k}: ${v}</span>`).join(" · ")
                     : "";
                 timelineHtml += `
                 <div style="position:relative;margin-bottom:1rem;padding:0.75rem;background:rgba(255,255,255,0.04);border-radius:8px;border-left:3px solid ${cfg.color}40;">
@@ -1106,10 +1106,10 @@ async function deleteShareEntry(shareId) {
 
 function filterHistory(query) {
     const q = query.toLowerCase();
-    const filtered = shareHistoryList.filter(l => 
-        (l.contact_name && l.contact_name.toLowerCase().includes(q)) || 
-        (l.user_name && l.user_name.toLowerCase().includes(q)) || 
-        (l.template_name && l.template_name.toLowerCase().includes(q)) || 
+    const filtered = shareHistoryList.filter(l =>
+        (l.contact_name && l.contact_name.toLowerCase().includes(q)) ||
+        (l.user_name && l.user_name.toLowerCase().includes(q)) ||
+        (l.template_name && l.template_name.toLowerCase().includes(q)) ||
         (l.campaign_name && l.campaign_name.toLowerCase().includes(q))
     );
     renderHistoryTable(filtered);
@@ -1122,7 +1122,7 @@ async function loadSettingsData() {
     showLoader("Loading settings config...");
     try {
         const settings = await API.getSettings();
-        
+
         // Update input views
         const sharingMode = settings.sharing_mode || "manual";
         const radios = document.getElementsByName("sharing_mode");
@@ -1145,7 +1145,7 @@ async function loadSettingsData() {
         const indicator = document.getElementById("db-connection-indicator");
         const title = document.getElementById("db-connection-title");
         const desc = document.getElementById("db-connection-desc");
-        
+
         // SQLite vs Supabase detection
         if (settings.is_supabase) {
             title.innerText = "Cloud DB (Supabase) Active";
@@ -1191,13 +1191,13 @@ async function saveSettingsConfig() {
 function enterDesignStudio(templateId) {
     const template = templatesList.find(t => t.id === templateId);
     if (!template) return;
-    
+
     activeTemplate = template;
-    
+
     // Hide standard layout, show fullscreen overlay
     document.getElementById("app-view").classList.add("hidden");
     document.getElementById("editor-layout-view").classList.remove("hidden");
-    
+
     document.getElementById("editor-template-name").innerText = template.name;
     document.getElementById("editor-template-category").innerText = template.category;
 
@@ -1213,11 +1213,11 @@ function exitEditor() {
 
 async function saveEditorLayout() {
     if (!designerCanvas || !activeTemplate) return;
-    
+
     // Compile fabric coordinates
     const objects = designerCanvas.getObjects();
     const fieldsData = [];
-    
+
     objects.forEach(obj => {
         if (obj === designerCanvas.backgroundImage) return;
         fieldsData.push(getPercentCoords(obj));
@@ -1252,7 +1252,7 @@ async function enterPersonalizerPanel(templateId) {
 
         // Render sharing contacts selector list
         renderShareContactsList(contactsList);
-        
+
         // Reset selections
         document.getElementById("select-all-contacts-cb").checked = false;
         document.getElementById("selected-contacts-count").innerText = "0 selected";
@@ -1263,7 +1263,7 @@ async function enterPersonalizerPanel(templateId) {
         document.getElementById("message-template-text").value = messageTemplates.default;
         compileMessagePreview();
         updatePresetDeleteButtonState();
-        
+
         // Default to first contact if available
         if (contactsList.length > 0) {
             selectContactForPreview(contactsList[0].id);
@@ -1306,27 +1306,27 @@ function loadMessageTemplates() {
 function renderMessagePresetDropdown() {
     const select = document.getElementById("message-preset-select");
     if (!select) return;
-    
+
     const currentValue = select.value;
     select.innerHTML = "";
-    
+
     Object.keys(messageTemplates).forEach(key => {
         const option = document.createElement("option");
         option.value = key;
-        
+
         let label = key.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
         if (key === "default") label = "Default Message";
-        
+
         option.textContent = label;
         select.appendChild(option);
     });
-    
+
     // Add Custom option
     const customOpt = document.createElement("option");
     customOpt.value = "custom";
     customOpt.textContent = "Custom Text";
     select.appendChild(customOpt);
-    
+
     if (currentValue && select.querySelector(`option[value="${currentValue}"]`)) {
         select.value = currentValue;
     } else {
@@ -1339,7 +1339,7 @@ function updatePresetDeleteButtonState() {
     const select = document.getElementById("message-preset-select");
     const deleteBtn = document.getElementById("delete-preset-btn");
     if (!select || !deleteBtn) return;
-    
+
     const key = select.value;
     const isDefault = Object.keys(DEFAULT_MESSAGE_TEMPLATES).includes(key);
     deleteBtn.disabled = isDefault || key === "custom";
@@ -1357,20 +1357,20 @@ function applyMessagePreset(presetKey) {
 function insertMessageTag(tag) {
     const textarea = document.getElementById("message-template-text");
     const select = document.getElementById("message-preset-select");
-    
+
     const start = textarea.selectionStart;
     const end = textarea.selectionEnd;
     const text = textarea.value;
-    
+
     textarea.value = text.substring(0, start) + tag + text.substring(end);
     textarea.focus();
-    
+
     // Move cursor right after the inserted tag
     textarea.selectionStart = textarea.selectionEnd = start + tag.length;
-    
+
     // Set select preset to custom since user edited it
     select.value = "custom";
-    
+
     updatePresetDeleteButtonState();
     compileMessagePreview();
 }
@@ -1387,43 +1387,43 @@ function saveCurrentMessageAsPreset() {
         showToast("Cannot save empty message template.", "error");
         return;
     }
-    
+
     const presetName = prompt("Enter a name for this message preset template:");
     if (!presetName) return; // Cancelled
-    
+
     const key = presetName.toLowerCase().trim().replace(/[^a-z0-9_]/g, "_").replace(/_+/g, "_");
     if (!key) {
         showToast("Invalid template name.", "error");
         return;
     }
-    
+
     messageTemplates[key] = text;
     localStorage.setItem("cap_message_templates", JSON.stringify(messageTemplates));
-    
+
     renderMessagePresetDropdown();
     document.getElementById("message-preset-select").value = key;
     applyMessagePreset(key);
-    
+
     showToast(`Preset "${presetName}" saved successfully!`, "success");
 }
 
 function deleteCurrentMessagePreset() {
     const select = document.getElementById("message-preset-select");
     const key = select.value;
-    
+
     if (key === "default" || key === "custom" || !messageTemplates[key]) {
         showToast("Cannot delete system default template.", "error");
         return;
     }
-    
+
     if (!confirm(`Are you sure you want to delete the message preset "${key.replace(/_/g, ' ')}"?`)) return;
-    
+
     delete messageTemplates[key];
     localStorage.setItem("cap_message_templates", JSON.stringify(messageTemplates));
-    
+
     renderMessagePresetDropdown();
     applyMessagePreset("default");
-    
+
     showToast("Preset deleted.", "info");
 }
 
@@ -1433,31 +1433,31 @@ function compileMessagePreview() {
     const template = textarea.value;
     const previewBox = document.getElementById("live-message-preview-box");
     if (!previewBox) return;
-    
+
     if (!template) {
         previewBox.innerHTML = `<span style="color: var(--text-muted); font-style: italic;">No message template entered. Only the creative image link will be sent.</span>`;
         return;
     }
-    
+
     const contact = activeContactForPreview;
-    
+
     const nameVal = contact ? contact.name : "John Doe";
     const companyVal = contact ? (contact.company || "Google") : "Google Inc.";
     const designationVal = contact ? (contact.designation || "Manager") : "Marketing Manager";
     const mobileVal = contact ? contact.mobile : "919876543210";
     const imageUrlVal = `<strong style="color: var(--accent-purple); text-decoration: underline;">[personalized_image_url]</strong>`;
-    
+
     // Safety escape HTML before inserting highlights
     const div = document.createElement("div");
     div.innerText = template;
     let safeHtml = div.innerHTML;
-    
+
     safeHtml = safeHtml.replace(/{name}/g, `<strong>${nameVal}</strong>`);
     safeHtml = safeHtml.replace(/{company}/g, `<strong>${companyVal}</strong>`);
     safeHtml = safeHtml.replace(/{designation}/g, `<strong>${designationVal}</strong>`);
     safeHtml = safeHtml.replace(/{mobile}/g, `<strong>${mobileVal}</strong>`);
     safeHtml = safeHtml.replace(/{image_url}/g, imageUrlVal);
-    
+
     previewBox.innerHTML = safeHtml;
 }
 
@@ -1493,9 +1493,9 @@ function renderShareContactsList(contacts) {
 
 function filterShareContacts(query) {
     const q = query.toLowerCase();
-    const filtered = contactsList.filter(c => 
-        c.name.toLowerCase().includes(q) || 
-        c.company.toLowerCase().includes(q) || 
+    const filtered = contactsList.filter(c =>
+        c.name.toLowerCase().includes(q) ||
+        c.company.toLowerCase().includes(q) ||
         c.mobile.includes(q)
     );
     renderShareContactsList(filtered);
@@ -1509,7 +1509,7 @@ function toggleSelectContact(contactId, isChecked) {
     } else {
         selectedContactsForShare = selectedContactsForShare.filter(id => id !== contactId);
     }
-    
+
     // Sync counts
     document.getElementById("selected-contacts-count").innerText = `${selectedContactsForShare.length} selected`;
 }
@@ -1539,12 +1539,12 @@ function selectContactForPreview(contactId) {
     // Add active layout highlight
     const items = document.querySelectorAll(".share-contact-item");
     items.forEach(el => el.classList.remove("active"));
-    
+
     // Auto check if not already checked for safety
     if (!selectedContactsForShare.includes(contactId)) {
         selectedContactsForShare.push(contactId);
         document.getElementById("selected-contacts-count").innerText = `${selectedContactsForShare.length} selected`;
-        
+
         // Re-render list to show checked
         renderShareContactsList(contactsList);
     }
@@ -1570,10 +1570,10 @@ function renderOverridesSidebar(fields, contact) {
 
     fields.forEach(f => {
         if (f.type !== "text") return; // Keep it text simple override for demo
-        
+
         const group = document.createElement("div");
         group.className = "form-group";
-        
+
         const fieldKey = f.name;
         let defaultVal = "";
         if (contact) {
@@ -1601,10 +1601,10 @@ function updatePersonalizationOverride(fieldName, value) {
 // Generate image and trigger client download
 async function generateAndDownloadImage() {
     if (!selectedTemplateForShare) return;
-    
+
     showToast("Generating high-resolution image...", "info");
     const base64 = await renderHighResBase64(selectedTemplateForShare, activeContactForPreview, personalizationOverrides);
-    
+
     const link = document.createElement("a");
     link.download = `creative_${selectedTemplateForShare.name.replace(/\s+/g, '_')}.png`;
     link.href = base64;
@@ -1671,19 +1671,19 @@ async function initiateBulkWhatsAppSend() {
         const contact = contactsList.find(c => c.id === cId);
         if (!contact) continue;
 
-        appendProgressLog(`[${count+1}/${total}] Rendering creative for ${contact.name}...`);
-        
+        appendProgressLog(`[${count + 1}/${total}] Rendering creative for ${contact.name}...`);
+
         // Generate high resolution creative output
         // Calculate dynamic overrides if preview matches target. Otherwise compile fresh from record.
         const targetOverrides = activeContactForPreview && activeContactForPreview.id === cId ? personalizationOverrides : {};
         const base64Image = await renderHighResBase64(selectedTemplateForShare, contact, targetOverrides);
 
-        appendProgressLog(`[${count+1}/${total}] Sending creative for ${contact.name} via WhatsApp...`);
+        appendProgressLog(`[${count + 1}/${total}] Sending creative for ${contact.name} via WhatsApp...`);
 
         try {
             const customMessage = document.getElementById("message-template-text").value;
             const res = await API.shareCreative(contact.id, selectedTemplateForShare.id, null, base64Image, customMessage);
-            
+
             if (res.channel === "manual" && res.whatsapp_url) {
                 // For manual mode, we open a tab to wa.me click to chat
                 window.open(res.whatsapp_url, "_blank");
@@ -1700,7 +1700,7 @@ async function initiateBulkWhatsAppSend() {
         document.getElementById("sharing-progress-title").innerText = "Processing sharing dispatch...";
         document.getElementById("sharing-progress-subtitle").innerText = `${count} / ${total} creatives processed`;
         document.getElementById("sharing-progress-bar").style.width = `${(count / total) * 100}%`;
-        
+
         // Introduce small 1s gap to prevent pop-up blocker issues or API load spikes
         await new Promise(r => setTimeout(r, 1000));
     }
@@ -1709,7 +1709,7 @@ async function initiateBulkWhatsAppSend() {
     appendProgressLog("<span style='font-weight: bold; color: #10b981;'>All creative sharing jobs completed!</span>");
     document.getElementById("sharing-progress-title").innerText = "Creative Share Jobs Complete!";
     document.getElementById("sharing-progress-footer").style.display = "block";
-    
+
     // Force reload share history in background
     loadHistoryData();
 }
@@ -1736,18 +1736,18 @@ function showToast(message, type = "info") {
     const container = document.getElementById("toast-container");
     const toast = document.createElement("div");
     toast.className = `toast ${type}`;
-    
+
     let iconClass = "fa-solid fa-circle-info";
     if (type === "success") iconClass = "fa-solid fa-circle-check";
     else if (type === "error") iconClass = "fa-solid fa-triangle-exclamation";
-    
+
     toast.innerHTML = `
         <i class="${iconClass}"></i>
         <div>${message}</div>
     `;
-    
+
     container.appendChild(toast);
-    
+
     // Auto-remove after 4 seconds
     setTimeout(() => {
         toast.style.animation = "slideIn 0.3s reverse forwards";

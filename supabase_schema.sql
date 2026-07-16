@@ -101,3 +101,28 @@ INSERT INTO settings (key, value) VALUES
 ('meta_phone_id', ''),
 ('meta_access_token', '')
 ON CONFLICT (key) DO NOTHING;
+
+-- 11. Create Storage Bucket 'cap-creatives'
+INSERT INTO storage.buckets (id, name, public) 
+VALUES ('cap-creatives', 'cap-creatives', true)
+ON CONFLICT (id) DO NOTHING;
+
+-- 12. Set up RLS Policies for the Storage Bucket 'cap-creatives'
+-- Allow public select/read access to files
+CREATE POLICY "Public Read Access" 
+ON storage.objects FOR SELECT 
+TO public 
+USING (bucket_id = 'cap-creatives');
+
+-- Allow public insert/upload access to files
+CREATE POLICY "Public Insert Access" 
+ON storage.objects FOR INSERT 
+TO public 
+WITH CHECK (bucket_id = 'cap-creatives');
+
+-- Allow public update access to files (for overwrites/upserts)
+CREATE POLICY "Public Update Access" 
+ON storage.objects FOR UPDATE 
+TO public 
+USING (bucket_id = 'cap-creatives');
+

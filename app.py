@@ -517,15 +517,8 @@ def share_creative():
     img_data = image_base64.split(",")[1] if "," in image_base64 else image_base64
     img_bytes = base64.b64decode(img_data)
     filename = f"creative_{uuid.uuid4().hex}.png"
-    try:
-        image_url = storage.save_file(img_bytes, filename, folder="creatives", force_supabase=False)
-    except Exception as e:
-        print(f"Graceful fallback to local saving on Supabase error: {e}")
-        # Force SQLite style local path
-        dest_path = os.path.join(storage.UPLOAD_FOLDER, "creatives", filename)
-        with open(dest_path, "wb") as f:
-            f.write(img_bytes)
-        image_url = f"/static/uploads/creatives/{filename}"
+    image_url = storage.save_file(img_bytes, filename, folder="creatives", force_supabase=True)
+    
     
     # Retrieve active sharing mode setting
     settings = database.get_settings()

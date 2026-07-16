@@ -11,202 +11,26 @@ load_dotenv()
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY")
 
-IS_SUPABASE = bool(SUPABASE_URL and SUPABASE_KEY)
-supabase_client = None
+if not SUPABASE_URL or not SUPABASE_KEY:
+    raise RuntimeError("Critical Configuration Error: SUPABASE_URL and SUPABASE_KEY environment variables are required. Local SQLite DB is disabled.")
 
-if IS_SUPABASE:
-    try:
-        from supabase import create_client
-        supabase_client = create_client(SUPABASE_URL, SUPABASE_KEY)
-        print("Connected to Supabase successfully!")
-    except Exception as e:
-        print(f"Failed to connect to Supabase: {e}. Falling back to SQLite.")
-        IS_SUPABASE = False
+try:
+    from supabase import create_client
+    supabase_client = create_client(SUPABASE_URL, SUPABASE_KEY)
+    print("Connected to Supabase successfully!")
+except Exception as e:
+    raise RuntimeError(f"Critical Connection Error: Failed to connect to Supabase: {e}. Local SQLite DB is disabled.")
 
-DB_FILE = "cap_local.db"
+IS_SUPABASE = True
+DB_FILE = None
 
 def get_db_connection():
-    if IS_SUPABASE:
-        return None
-    conn = sqlite3.connect(DB_FILE)
-    conn.row_factory = sqlite3.Row
-    return conn
+    raise RuntimeError("Local SQLite database is disabled. Access denied.")
 
 def init_db():
-    """Initialize database tables. Creates SQLite tables if using SQLite."""
-    if IS_SUPABASE:
-        # Supabase tables are expected to be created in the Supabase UI.
-        # We will output the DDL SQL statements to console/logs for the user.
-        print("Supabase database active. Ensure the tables are set up.")
-        return
+    """Initialize database connection. Enforces Supabase presence."""
+    print("Supabase database active. Connection verified successfully!")
 
-    conn = get_db_connection()
-    cursor = conn.cursor()
-
-    # Users
-    cursor.execute('''
-    CREATE TABLE IF NOT EXISTS users (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        email TEXT UNIQUE NOT NULL,
-        password_hash TEXT NOT NULL,
-        role TEXT NOT NULL, -- 'super_admin', 'admin', 'user'
-        name TEXT NOT NULL,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    )
-    ''')
-
-    # Contacts
-    cursor.execute('''
-    CREATE TABLE IF NOT EXISTS contacts (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT NOT NULL,
-        mobile TEXT UNIQUE NOT NULL, -- Normalized e.g., 919876543210
-        company TEXT,
-        designation TEXT,
-        notes TEXT,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    )
-    ''')
-
-    # Templates
-    cursor.execute('''
-    CREATE TABLE IF NOT EXISTS templates (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT NOT NULL,
-        category TEXT NOT NULL,
-        background_url TEXT NOT NULL,
-        status TEXT NOT NULL DEFAULT 'active', -- 'active', 'archived'
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    )
-    ''')
-
-    # Template Fields
-    cursor.execute('''
-    CREATE TABLE IF NOT EXISTS template_fields (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        template_id INTEGER NOT NULL,
-        name TEXT NOT NULL,
-        type TEXT NOT NULL, -- 'text', 'image'
-        position_x REAL NOT NULL,
-        position_y REAL NOT NULL,
-        width REAL NOT NULL,
-        height REAL NOT NULL,
-        is_default INTEGER DEFAULT 0, -- 1 for default (Name, Mobile), 0 for custom
-        font_family TEXT,
-        font_size INTEGER,
-        font_weight TEXT,
-        text_color TEXT,
-        extra_styles TEXT, -- JSON string for stroke, shadow, alignment, etc.
-        FOREIGN KEY (template_id) REFERENCES templates(id) ON DELETE CASCADE
-    )
-    ''')
-
-    # Campaigns
-    cursor.execute('''
-    CREATE TABLE IF NOT EXISTS campaigns (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT NOT NULL,
-        start_date TEXT NOT NULL,
-        end_date TEXT NOT NULL,
-        status TEXT NOT NULL DEFAULT 'active', -- 'active', 'inactive'
-        is_deleted INTEGER NOT NULL DEFAULT 0, -- 0 = active, 1 = soft-deleted
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    )
-    ''')
-
-    # Campaign Templates join table
-    cursor.execute('''
-    CREATE TABLE IF NOT EXISTS campaign_templates (
-        campaign_id INTEGER,
-        template_id INTEGER,
-        PRIMARY KEY (campaign_id, template_id),
-        FOREIGN KEY (campaign_id) REFERENCES campaigns(id) ON DELETE CASCADE,
-        FOREIGN KEY (template_id) REFERENCES templates(id) ON DELETE CASCADE
-    )
-    ''')
-
-    # Share History
-    cursor.execute('''
-    CREATE TABLE IF NOT EXISTS share_history (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        contact_id INTEGER NOT NULL,
-        user_id INTEGER NOT NULL,
-        template_id INTEGER,
-        campaign_id INTEGER,
-        generated_image_url TEXT NOT NULL,
-        share_timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        delivery_status TEXT NOT NULL DEFAULT 'sent', -- 'sent', 'delivered', 'read', 'failed'
-        channel TEXT NOT NULL, -- 'manual', 'api'
-        message_id TEXT,
-        FOREIGN KEY (contact_id) REFERENCES contacts(id),
-        FOREIGN KEY (user_id) REFERENCES users(id),
-        FOREIGN KEY (template_id) REFERENCES templates(id) ON DELETE SET NULL,
-        FOREIGN KEY (campaign_id) REFERENCES campaigns(id) ON DELETE SET NULL
-    )
-    ''')
-
-    # Migration: Add message_id column to existing sqlite share_history table if needed
-    try:
-        cursor.execute("ALTER TABLE share_history ADD COLUMN message_id TEXT")
-    except sqlite3.OperationalError:
-        # Column already exists
-        pass
-
-    # Migration: Add is_deleted column to existing sqlite campaigns table if needed
-    try:
-        cursor.execute("ALTER TABLE campaigns ADD COLUMN is_deleted INTEGER NOT NULL DEFAULT 0")
-    except sqlite3.OperationalError:
-        # Column already exists
-        pass
-
-    # Settings
-    cursor.execute('''
-    CREATE TABLE IF NOT EXISTS settings (
-        key TEXT PRIMARY KEY,
-        value TEXT NOT NULL
-    )
-    ''')
-
-    # Share Link Events - track what happens to every shared link
-    cursor.execute('''
-    CREATE TABLE IF NOT EXISTS share_link_events (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        share_id INTEGER NOT NULL,
-        event_type TEXT NOT NULL, -- 'opened', 'clicked', 'deleted', 'expired', 'resent', 'failed', 'delivered', 'read'
-        event_timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        metadata TEXT, -- JSON string for extra info (IP, user agent, etc.)
-        FOREIGN KEY (share_id) REFERENCES share_history(id) ON DELETE CASCADE
-    )
-    ''')
-
-    # Migration: ensure share_link_events exists in older DBs
-    try:
-        cursor.execute("SELECT 1 FROM share_link_events LIMIT 1")
-    except Exception:
-        pass
-
-    # Insert default admin user if none exists
-    cursor.execute("SELECT COUNT(*) FROM users")
-    if cursor.fetchone()[0] == 0:
-        admin_pass = generate_password_hash("admin123")
-        cursor.execute(
-            "INSERT INTO users (email, password_hash, role, name) VALUES (?, ?, ?, ?)",
-            ("admin@cap.com", admin_pass, "super_admin", "Super Admin")
-        )
-        user_pass = generate_password_hash("user123")
-        cursor.execute(
-            "INSERT INTO users (email, password_hash, role, name) VALUES (?, ?, ?, ?)",
-            ("user@cap.com", user_pass, "user", "Standard User")
-        )
-
-    # Insert default settings if none exist
-    cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)", ("sharing_mode", "manual"))
-    cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)", ("meta_phone_id", ""))
-    cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)", ("meta_access_token", ""))
-
-    conn.commit()
-    conn.close()
-    print("Local SQLite database initialized successfully!")
 
 # Unified Database API Methods
 
